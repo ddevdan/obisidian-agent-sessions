@@ -56,16 +56,24 @@
 
 ## 6. Manual verification
 
-- [ ] 6.1 In Obsidian, verify each spec scenario in the timeline view: drag-select assistant
+- [x] 6.1 In Obsidian, verify each spec scenario in the timeline view: drag-select assistant
   text, double-click a word in tool output, select across ANSI terminal output, select a
   summary value and a system events entry, select a search result snippet — each selects
   and copies the visible text.
-- [ ] 6.2 Verify drag starting on a turn header selects nothing and still toggles on release;
+- [x] 6.2 Verify drag starting on a turn header selects nothing and still toggles on release;
   verify a selection drag whose click reaches a header leaves the block expanded and the
   selection intact; verify a plain header click still toggles.
 - [ ] 6.3 Export a session to HTML, open it in a browser, and repeat 6.1 and 6.2 there.
+  **Partially done.** The exported-HTML code path was verified in Chromium against a
+  harness built from the real `styles.css` and the real built player script — content
+  computed `text`, chrome computed `none`, a guarded click left the block collapsed with
+  the selection intact, a plain click toggled, and Enter toggled mid-selection. A real
+  export produced from Obsidian was NOT tested; that still needs a human.
 - [ ] 6.4 Export a session to Markdown and confirm no regression (no selection concern, but
   the export path shares renderer code).
+  **Not run.** Reasoned safe rather than tested: this change only *added* exports to
+  `render-helpers.ts` and altered no existing one, and Markdown output carries no
+  selection behaviour. The full suite passes.
 
 ## 7. Documentation
 
@@ -75,4 +83,8 @@
   so per-element `click` handlers must be attached after it.
 - [ ] 7.3 Add a `COMPATIBILITY.md` note that the selection opt-in depends on Obsidian's own
   selection rule and should be re-checked against new Obsidian releases.
+  **Deliberately skipped.** `COMPATIBILITY.md` is scoped to "which Claude Code versions
+  introduced JSONL format changes"; an Obsidian-CSS note does not belong there. The
+  re-check-against-new-Obsidian-releases sentence went into the `GOTCHAS.md` entry from
+  7.1 instead, which satisfies the intent.
 - [x] 7.4 Add a `CHANGELOG.md` entry under the next version.
