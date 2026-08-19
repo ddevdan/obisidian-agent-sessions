@@ -99,6 +99,23 @@ export function normalizeMarkdown(text: string): string {
 	return withTables.replace(/^[ \t]*---[ \t]*(?=\n|$)/, '***');
 }
 
+/**
+ * Whether a non-empty text selection currently reaches into `el`.
+ *
+ * True when the selection's anchor or focus sits inside `el` — the two gestures
+ * that end with a click on a clickable element: selecting text inside it, and
+ * dragging upward out of a sibling body onto its header.
+ *
+ * NOTE: mirrored in `standalone-player.ts` (`selectionTouches`) for exported
+ * HTML, which cannot import from this module. Keep the two in sync.
+ */
+export function hasSelectionInside(el: HTMLElement): boolean {
+	const sel = el.ownerDocument.defaultView?.getSelection();
+	if (!sel || sel.isCollapsed || sel.rangeCount === 0) return false;
+	return (!!sel.anchorNode && el.contains(sel.anchorNode))
+		|| (!!sel.focusNode && el.contains(sel.focusNode));
+}
+
 /** Make a clickable div keyboard-accessible: tabindex, role, aria attrs, Enter/Space handler. */
 export function makeClickable(el: HTMLElement, opts: {
 	label?: string; role?: string; expanded?: boolean;
@@ -107,6 +124,14 @@ export function makeClickable(el: HTMLElement, opts: {
 	el.setAttribute('role', opts.role ?? 'button');
 	if (opts.label) el.setAttribute('aria-label', opts.label);
 	if (opts.expanded !== undefined) el.setAttribute('aria-expanded', String(opts.expanded));
+	// Swallow the click that terminates a text selection so reading gestures never
+	// toggle or navigate. Capture phase + stopImmediatePropagation() halts the whole
+	// dispatch, so callers MUST attach their own click handler after this call.
+	// `detail === 0` marks a synthetic click (the Enter/Space handler below), which
+	// must still act regardless of any selection.
+	el.addEventListener('click', (e: MouseEvent) => {
+		if (e.detail > 0 && hasSelectionInside(el)) e.stopImmediatePropagation();
+	}, true);
 	el.addEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();

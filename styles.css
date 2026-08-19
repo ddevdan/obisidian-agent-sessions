@@ -1,6 +1,23 @@
 /* All selectors scoped to .claude-sessions-* */
 
 /* ═══════════════════════════════════════════
+   Text selection
+   ═══════════════════════════════════════════ */
+
+/* Obsidian's app.css sets `body { user-select: none }`, and user-select
+   inherits — so custom view content is unselectable unless a view opts back
+   in (the reading view does exactly this on .markdown-preview-view). Opt in
+   once at each view root so every content block, present and future, is
+   selectable by default. Interactive chrome opts back out individually with
+   `user-select: none`; an element's own declaration always beats the value it
+   would inherit from here, regardless of specificity. */
+.claude-sessions-timeline-container,
+.claude-sessions-search-view {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+/* ═══════════════════════════════════════════
    Container layout
    ═══════════════════════════════════════════ */
 
@@ -143,6 +160,7 @@
 	gap: var(--size-2-3);
 	padding: var(--size-4-2) var(--size-4-3);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 }
 
@@ -206,6 +224,8 @@
 	border: none;
 	color: var(--text-faint);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	padding: var(--size-2-1) var(--size-2-2);
 	border-radius: var(--radius-s);
 	display: flex;
@@ -690,6 +710,7 @@
 	border-bottom: var(--border-width) solid var(--background-modifier-border);
 	border-radius: var(--radius-s) var(--radius-s) 0 0;
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	font-size: var(--cs-font-size-xs);
 	color: var(--text-muted);
@@ -782,6 +803,8 @@
 	border: none;
 	color: var(--text-faint);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	padding: var(--size-2-2);
 	border-radius: var(--radius-s);
 	opacity: 0;
@@ -935,6 +958,7 @@
 	color: var(--text-normal);
 	cursor: pointer;
 	padding: var(--size-4-2) 0;
+	-webkit-user-select: none;
 	user-select: none;
 	border: var(--border-width) solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
@@ -968,6 +992,7 @@
 	gap: var(--size-2-3);
 	padding: var(--cs-padding-header);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	transition: background 0.15s;
 	min-height: var(--touch-size-m);
@@ -1189,6 +1214,8 @@
 	gap: var(--size-2-3);
 	padding: var(--size-2-2) var(--size-4-6);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	font-size: var(--cs-font-size-xs);
 	color: var(--text-faint);
 }
@@ -1619,6 +1646,7 @@
 	gap: var(--size-2-2);
 	padding: var(--size-2-1) var(--size-4-2);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	min-height: var(--touch-size-m);
 	transition: background 0.15s;
@@ -1748,6 +1776,8 @@
 	border: none;
 	color: var(--text-faint);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	padding: var(--size-2-1) var(--size-2-2);
 	border-radius: var(--radius-s);
 	display: flex;
@@ -1841,6 +1871,7 @@
 	gap: var(--size-2-3);
 	padding: var(--cs-padding-header);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	font-size: var(--font-ui-smaller);
 	color: var(--cs-tool-group-header);
@@ -1914,6 +1945,7 @@
 	gap: var(--size-2-3);
 	padding: var(--cs-padding-header);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	transition: background 0.15s;
 	min-height: var(--touch-size-m);
@@ -1995,6 +2027,7 @@
 	gap: var(--size-2-3);
 	padding: var(--cs-padding-header);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	transition: background 0.15s;
 	min-height: var(--touch-size-m);
@@ -2078,6 +2111,8 @@
 	font-family: var(--cs-font-family);
 	font-size: var(--cs-font-size-input);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	transition: background 0.15s;
 	flex-shrink: 0;
 	height: 34px;
@@ -2149,6 +2184,8 @@
 	background: var(--background-primary);
 	border-radius: var(--radius-s);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	position: relative;
 }
 
@@ -2232,6 +2269,8 @@
 	color: var(--text-faint);
 	padding: 0 var(--size-2-2);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	transition: opacity 100ms ease, color 100ms ease;
 }
 
@@ -2284,6 +2323,8 @@
 	padding: 28px var(--size-4-4);
 	text-align: center;
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	transition: border-color 0.2s, background 0.2s;
 	margin-bottom: var(--size-4-2);
 }
@@ -2306,6 +2347,8 @@
 .claude-sessions-drop-zone-browse {
 	color: var(--cs-accent);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	text-decoration: underline;
 	text-underline-offset: 2px;
 	background: none;
@@ -2356,6 +2399,8 @@
 	border-radius: var(--radius-s);
 	margin-top: var(--size-2-3);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	border: var(--border-width) solid var(--background-modifier-border);
 	transition: border-color 0.2s, opacity 0.2s;
 	object-fit: cover;
@@ -2410,6 +2455,8 @@
 	border: var(--border-width) solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	transition: border-color 0.2s;
 	margin: var(--size-4-2) 0;
 	overflow: hidden;
@@ -2503,6 +2550,7 @@
 	align-items: center;
 	gap: var(--size-4-2);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 	padding: var(--size-4-1) 0;
 }
@@ -2620,6 +2668,8 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	-webkit-appearance: none;
 	appearance: none;
 }
@@ -2758,6 +2808,8 @@
 	background: transparent;
 	color: var(--text-faint);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	flex-shrink: 0;
     height: var(--size-4-5);
     width: var(--size-4-5);
@@ -2793,6 +2845,8 @@
 	background: transparent;
 	color: var(--text-muted);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 }
 
 .claude-sessions-search-options-btn:hover {
@@ -2941,6 +2995,8 @@
 	font-size: var(--cs-font-size-xs);
 	color: var(--text-accent);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	min-height: var(--touch-size-m);
 	display: flex;
 	align-items: center;
@@ -3009,6 +3065,7 @@
 	gap: var(--size-2-3);
 	padding: var(--size-4-2) var(--size-4-3);
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 }
 
@@ -3180,6 +3237,8 @@
 .claude-sessions-system-events-expand {
 	color: var(--text-accent);
 	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
 	margin-left: var(--size-4-1);
 }
 

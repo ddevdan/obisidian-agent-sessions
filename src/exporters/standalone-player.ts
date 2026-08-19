@@ -316,9 +316,36 @@ export function getStandaloneScript(): string {
     }
   }
 
+  /* ── Text-selection guard ──
+   * Mirrors hasSelectionInside() in src/views/render-helpers.ts, which the live
+   * view installs via makeClickable(). This file is embedded as a string and
+   * cannot import from it — keep the two in sync.
+   *
+   * True when a non-empty selection's anchor or focus reaches into el: the two
+   * gestures that end with a click on a clickable element — selecting text
+   * inside it, and dragging upward out of a sibling body onto its header.
+   */
+  function selectionTouches(el) {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return false;
+    return (!!sel.anchorNode && el.contains(sel.anchorNode))
+      || (!!sel.focusNode && el.contains(sel.focusNode));
+  }
+
+  var GUARDED_CLICKABLES = '.claude-sessions-mermaid-container, .claude-sessions-collapsible-toggle, [role="button"][aria-expanded], .claude-sessions-image-thumbnail, .claude-sessions-read-md-btn';
+  var COPY_BUTTONS = '.claude-sessions-copy-btn, .claude-sessions-text-copy, .claude-sessions-summary-copy, .copy-code-button';
+
   /* ── Event delegation ── */
   document.addEventListener('click', function(e) {
     var target = e.target;
+
+    /* Drop the click that terminates a text selection so reading never toggles a
+     * block. detail === 0 is a synthetic click from the Enter/Space handler and
+     * must always act. Copy buttons stay exempt so copy works mid-selection. */
+    if (e.detail > 0 && !target.closest(COPY_BUTTONS)) {
+      var guarded = target.closest(GUARDED_CLICKABLES);
+      if (guarded && selectionTouches(guarded)) return;
+    }
 
     /* Mermaid diagram containers */
     var mermaidContainer = target.closest('.claude-sessions-mermaid-container');
@@ -329,7 +356,7 @@ export function getStandaloneScript(): string {
     }
 
     /* Copy buttons — check before collapsibles so copy buttons inside headers work */
-    var copyBtn = target.closest('.claude-sessions-copy-btn, .claude-sessions-text-copy, .claude-sessions-summary-copy, .copy-code-button');
+    var copyBtn = target.closest(COPY_BUTTONS);
     if (copyBtn) {
       e.preventDefault();
       var text = copyBtn.getAttribute('data-copy-text');
