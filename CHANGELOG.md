@@ -10,15 +10,6 @@ For Claude Code version compatibility, see [COMPATIBILITY.md](COMPATIBILITY.md).
 
 ## [Unreleased]
 
-### Changed
-- **Sessions are ordered by when you last prompted them, not by file mtime** — the session browser and search panel sorted on the file's modification time, which drifts away from your last prompt. Background writes keep touching a session file after you stop typing: title regeneration, file-history snapshots, subagent activity. Measured over a 361-session corpus, mtime ordering and last-prompt ordering agreed on only **14%** of positions, with drift reaching days. One real session was last prompted at 17:29 but written at 19:36 — under the old sort it outranked sessions touched far more recently
-
-  The sort key is the timestamp of the last user record, resolved in `utils/session-order.ts`, with mtime kept as the fallback for a session that has no user record. Coverage is 100% of sessions with content
-
-  Claude Code's own `last-prompt` record was the obvious source but is unusable as a key: it carries no timestamp, and its `leafUuid` points at any record type (usually `system`), so resolving it would mean building a uuid→timestamp map over every line — the full-parse cost the metadata scan exists to avoid. The last user record's timestamp agrees with it to a median of 26 seconds while covering 100% of sessions instead of 76%. The timestamp is pulled with a narrow regex after a head-only type check, verified against a full parse across the corpus at 360/360 exact with no false matches
-
-  The session index cache version is bumped to 4 to re-read already-indexed sessions
-
 ### Added
 - **Session titles in the browser and search panels** — Claude Code names every session it can, and shows that name in its own `/resume` picker. The plugin was throwing the name away: `ai-title` was listed in both `SKIP_RECORD_TYPES` and `SKIP_TYPE_STRINGS`, so it got discarded as metadata noise
 
@@ -30,7 +21,30 @@ For Claude Code version compatibility, see [COMPATIBILITY.md](COMPATIBILITY.md).
 
   The session index cache version is bumped to 3, so already-indexed sessions are re-read once to pick up their titles
 
+### Changed
+- **Sessions are ordered by when you last prompted them, not by file mtime** — the session browser and search panel sorted on the file's modification time, which drifts away from your last prompt. Background writes keep touching a session file after you stop typing: title regeneration, file-history snapshots, subagent activity. Measured over a 361-session corpus, mtime ordering and last-prompt ordering agreed on only **14%** of positions, with drift reaching days. One real session was last prompted at 17:29 but written at 19:36 — under the old sort it outranked sessions touched far more recently
+
+  The sort key is the timestamp of the last user record, resolved in `utils/session-order.ts`, with mtime kept as the fallback for a session that has no user record. Coverage is 100% of sessions with content
+
+  Claude Code's own `last-prompt` record was the obvious source but is unusable as a key: it carries no timestamp, and its `leafUuid` points at any record type (usually `system`), so resolving it would mean building a uuid→timestamp map over every line — the full-parse cost the metadata scan exists to avoid. The last user record's timestamp agrees with it to a median of 26 seconds while covering 100% of sessions instead of 76%. The timestamp is pulled with a narrow regex after a head-only type check, verified against a full parse across the corpus at 360/360 exact with no false matches
+
+  The session index cache version is bumped to 4 to re-read already-indexed sessions
+
 ### Fixed
+- **Tables with unpiped body rows rendered as a paragraph** — model-authored tables sometimes pipe the header and delimiter rows but not the body:
+
+  ```
+  | Test | Output | Finding |
+  |---|---|---|
+  `test_name` | `assert 2.01 < 1.5` | prep phase unbounded |
+  ```
+
+  Obsidian closes the table after the delimiter row, so the body rendered as flowing text with the pipes showing as literal characters and the cells as inline code. `normalizeMarkdown()` now gives those rows the leading pipe they are missing. A row is only adopted if it carries at least `columns - 1` pipes, so prose that merely happens to contain a pipe closes the table instead of being pulled into it. Roughly 4% of tables in a real corpus have this shape
+
+- **Blank-line insertion corrupted fenced code blocks** — the rule that separates a table from the paragraph above it was a plain regex with no awareness of code fences, so a table-shaped block inside a fence had a blank line injected into it, breaking the fence and the code it displayed. Both table repairs now run in a single fence-aware pass that skips fenced content entirely. Measured over a 361-session corpus the old rule corrupted fenced code in 6 text blocks; the new one in none
+
+  The pass also now recognises tables written without outer pipes (`a | b` over `--- | ---`), which the old regex required to start and end with a pipe
+
 - **Session text could not be selected or copied** — Obsidian's `app.css` sets `user-select: none` on `body` and `user-select` inherits, so everything the plugin rendered was unselectable. You could read an assistant reply or a line of command output but not drag across it, and the copy buttons were the only way to get text out
 
   Each view root (`.claude-sessions-timeline-container`, `.claude-sessions-search-view`) now opts back in with `user-select: text`, so message text, thinking blocks, tool input and results, diffs, ANSI terminal output, summary values, system events, and search snippets are all selectable and copyable. Interactive chrome opts back out: the 16 clickable elements that were missing a selection opt-out (copy and download buttons, control-bar buttons, the compaction header, image thumbnails, mermaid containers, search buttons) now carry one, so a drag that starts on a header still expands the block instead of painting a selection

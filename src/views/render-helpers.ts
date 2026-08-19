@@ -87,12 +87,107 @@ export function stripFenceMarkers(text: string): string {
 	return kept.length === lines.length ? text : kept.join('\n');
 }
 
+/** Opening or closing marker of a fenced code block. */
+const RE_FENCE_MARKER = /^\s*(`{3,}|~{3,})/;
+
+/** A GFM delimiter row — only pipes, dashes, colons and spaces, with at least one of each. */
+function isDelimiterRow(line: string): boolean {
+	const trimmed = line.trim();
+	return trimmed.includes('-') && trimmed.includes('|') && /^[-:|\s]+$/.test(trimmed);
+}
+
+/** Cell count of a table row, ignoring the optional outer pipes. */
+function countCells(row: string): number {
+	return row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').length;
+}
+
 /**
- * Ensure blank line before GFM tables (CommonMark requires it for block-level parsing),
- * and defuse a leading `---` so Obsidian doesn't read the block as YAML frontmatter.
+ * Make GFM tables parse the way they were meant to.
+ *
+ * Two repairs, both driven by what real session content looks like:
+ *
+ * 1. CommonMark needs a blank line between a paragraph and a table that follows it,
+ *    otherwise the table is swallowed into the paragraph.
+ * 2. Model-authored tables sometimes pipe the header and delimiter rows but not the body:
+ *
+ *        | Test | Output | Finding |
+ *        |---|---|---|
+ *        `test_name` | `assert 2.01 < 1.5` | prep phase unbounded |
+ *
+ *    Obsidian closes the table after the delimiter, so the body renders as a paragraph
+ *    with the pipes showing as literal text. ~4% of tables in a real corpus look like this.
+ *
+ * Both run in a single fence-aware pass. Fenced code blocks are skipped entirely — a
+ * table-shaped block inside a fence is code being displayed, and editing it would corrupt
+ * what the reader is meant to see.
+ *
+ * A body row is only adopted if it carries at least `columns - 1` pipes, so prose that
+ * merely happens to contain a pipe closes the table instead of being pulled into it.
+ */
+function normalizeTables(text: string): string {
+	const lines = text.split('\n');
+	const out: string[] = [];
+	let fenceChar = '';
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+
+		const marker = RE_FENCE_MARKER.exec(line);
+		if (marker) {
+			if (!fenceChar) fenceChar = marker[1][0];
+			else if (marker[1][0] === fenceChar) fenceChar = '';
+			out.push(line);
+			continue;
+		}
+		if (fenceChar) {
+			out.push(line);
+			continue;
+		}
+
+		// A row containing a pipe, followed by a delimiter row, opens a table.
+		const opensTable = line.includes('|')
+			&& !isDelimiterRow(line)
+			&& i + 1 < lines.length
+			&& isDelimiterRow(lines[i + 1]);
+		if (!opensTable) {
+			out.push(line);
+			continue;
+		}
+
+		// Separate the table from a preceding paragraph. Skipped when the previous line is
+		// itself a table row, so two adjacent tables aren't split apart.
+		const prev = out[out.length - 1];
+		if (prev !== undefined && prev.trim() !== '' && !/^\s*\|/.test(prev)) out.push('');
+
+		out.push(line);
+		out.push(lines[i + 1]);
+
+		const minPipes = Math.max(1, countCells(line) - 1);
+		let j = i + 2;
+		for (; j < lines.length; j++) {
+			const row = lines[j];
+			if (!row.trim()) break;                        // blank line closes the table
+			if (RE_FENCE_MARKER.test(row)) break;
+			if (/^\s*\|/.test(row)) {                      // already a well-formed row
+				out.push(row);
+				continue;
+			}
+			if ((row.match(/\|/g) ?? []).length < minPipes) break;
+			const indent = /^\s*/.exec(row)?.[0] ?? '';
+			out.push(`${indent}| ${row.slice(indent.length)}`);
+		}
+		i = j - 1;
+	}
+
+	return out.join('\n');
+}
+
+/**
+ * Repair GFM tables (see `normalizeTables`) and defuse a leading `---` so Obsidian
+ * doesn't read the block as YAML frontmatter.
  */
 export function normalizeMarkdown(text: string): string {
-	const withTables = text.replace(/^([^|\n][^\n]*)\n(\|[^\n]+\|\s*\n\|[-:| ]+\|)/gm, '$1\n\n$2');
+	const withTables = normalizeTables(text);
 	// A text block opening with `---` is a thematic break, but MarkdownRenderer treats
 	// it as a frontmatter delimiter and swallows everything up to the next `---` —
 	// rendering the turn blank. `***` is the equivalent break with no such ambiguity.

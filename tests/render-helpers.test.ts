@@ -204,3 +204,105 @@ describe('makeClickable selection guard', () => {
 		expect(el.attrs).toMatchObject({ tabindex: '0', role: 'button', 'aria-expanded': 'true' });
 	});
 });
+
+describe('normalizeMarkdown table body row repair', () => {
+	// The real-world shape: header and delimiter are piped, body rows are not, so
+	// Obsidian closes the table after the delimiter and the body renders as a
+	// paragraph with the pipes showing as literal text.
+	it('adds the missing leading pipe to body rows', () => {
+		const input = [
+			'| Test | Output | Finding |',
+			'|---|---|---|',
+			'`test_one` | `assert 2.0 < 1.5` | prep phase unbounded |',
+			'`test_two` | `TypeError` raised | over-catch |',
+		].join('\n');
+
+		expect(normalizeMarkdown(input)).toBe([
+			'| Test | Output | Finding |',
+			'|---|---|---|',
+			'| `test_one` | `assert 2.0 < 1.5` | prep phase unbounded |',
+			'| `test_two` | `TypeError` raised | over-catch |',
+		].join('\n'));
+	});
+
+	it('leaves a well-formed table untouched', () => {
+		const input = '| a | b |\n|---|---|\n| 1 | 2 |';
+		expect(normalizeMarkdown(input)).toBe(input);
+	});
+
+	it('repairs only the rows that need it', () => {
+		const input = '| a | b |\n|---|---|\n| 1 | 2 |\n3 | 4 |';
+		expect(normalizeMarkdown(input)).toBe('| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |');
+	});
+
+	// A pipe in ordinary prose must not drag that line into the table.
+	it('does not absorb following prose that merely contains a pipe', () => {
+		const input = '| a | b | c |\n|---|---|---|\n| 1 | 2 | 3 |\nUse the a | b form here.';
+		expect(normalizeMarkdown(input)).toBe(input);
+	});
+
+	it('stops at a blank line', () => {
+		const input = '| a | b |\n|---|---|\n| 1 | 2 |\n\nplain | prose';
+		expect(normalizeMarkdown(input)).toBe(input);
+	});
+
+	// Rewriting pipes inside a fence would corrupt the code being displayed.
+	it('never touches a table-shaped block inside a fenced code block', () => {
+		const input = [
+			'```md',
+			'| a | b |',
+			'|---|---|',
+			'1 | 2 |',
+			'```',
+		].join('\n');
+		expect(normalizeMarkdown(input)).toBe(input);
+	});
+
+	it('resumes repairing after a fence closes', () => {
+		const input = [
+			'```',
+			'code | here |',
+			'```',
+			'',
+			'| a | b |',
+			'|---|---|',
+			'1 | 2 |',
+		].join('\n');
+		expect(normalizeMarkdown(input)).toBe([
+			'```',
+			'code | here |',
+			'```',
+			'',
+			'| a | b |',
+			'|---|---|',
+			'| 1 | 2 |',
+		].join('\n'));
+	});
+
+	it('handles a tilde fence', () => {
+		const input = '~~~\n| a | b |\n|---|---|\n1 | 2 |\n~~~';
+		expect(normalizeMarkdown(input)).toBe(input);
+	});
+
+	it('preserves indentation when repairing', () => {
+		const input = '  | a | b |\n  |---|---|\n  1 | 2 |';
+		expect(normalizeMarkdown(input)).toBe('  | a | b |\n  |---|---|\n  | 1 | 2 |');
+	});
+
+	it('accepts an alignment delimiter row', () => {
+		const input = '| a | b |\n|:--|--:|\n1 | 2 |';
+		expect(normalizeMarkdown(input)).toBe('| a | b |\n|:--|--:|\n| 1 | 2 |');
+	});
+
+	it('repairs a second table in the same block', () => {
+		const input = '| a | b |\n|---|---|\n1 | 2 |\n\n| c | d |\n|---|---|\n3 | 4 |';
+		expect(normalizeMarkdown(input))
+			.toBe('| a | b |\n|---|---|\n| 1 | 2 |\n\n| c | d |\n|---|---|\n| 3 | 4 |');
+	});
+
+	// The pre-existing blank-line insertion must still happen alongside the repair.
+	it('still inserts the blank line before a table it also repairs', () => {
+		const input = 'Intro line\n| a | b |\n|---|---|\n1 | 2 |';
+		expect(normalizeMarkdown(input)).toBe('Intro line\n\n| a | b |\n|---|---|\n| 1 | 2 |');
+	});
+});
