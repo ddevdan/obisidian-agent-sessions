@@ -11,8 +11,10 @@ export interface SessionMetadata {
 	version?: string;
 	startTime?: string;
 	totalTurns: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
 }
 
 export interface SessionStats {
@@ -269,8 +271,12 @@ export interface SessionListEntry {
 	cwd?: string;
 	startTime?: string;
 	mtime: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
+	/** ISO timestamp of the last user prompt. Sort key for the session list. */
+	lastPromptTime?: string;
 }
 
 export interface CachedSessionMeta {
@@ -279,8 +285,12 @@ export interface CachedSessionMeta {
 	startTime?: string;
 	hasContent: boolean;
 	mtime: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
+	/** ISO timestamp of the last user prompt. Sort key for the session list. */
+	lastPromptTime?: string;
 }
 
 export interface SessionIndexData {

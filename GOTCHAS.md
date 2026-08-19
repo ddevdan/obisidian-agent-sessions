@@ -20,6 +20,8 @@ Reference document for known pitfalls. Not auto-included — use `@GOTCHAS.md` w
 - Pinned heroes use negative margins to break out of the content max-width — requires `overflow-x: hidden` on `.claude-sessions-timeline` to prevent horizontal scrollbar
 - `refreshSummary()` destroys and rebuilds the pinned heroes and summary DOM — must capture `is-pinned` and `open` state before teardown and restore after re-render, otherwise live reload resets pin state
 - Progress bar tooltip (`top: -24px`) is clipped by parent `overflow: hidden` — the progress wrap needs enough top padding (28px) to contain it within bounds
+- Obsidian's `app.css` sets `user-select: none` on `body`, and `user-select` inherits — so a custom view's content is unselectable unless the view opts back in (the reading view does exactly this on `.markdown-preview-view`). The plugin opts in once at each view root (`.claude-sessions-timeline-container`, `.claude-sessions-search-view`) and interactive chrome opts back out individually. An element's own `user-select` declaration always beats the value it would inherit, regardless of specificity, so chrome opt-outs need no extra weight. This depends on a rule the plugin does not control — re-check it against new Obsidian releases if selection stops working
+- `cursor: pointer` in `styles.css` is not proof an element has a click handler — `.claude-sessions-system-events-stdout.collapsed` carries the pointer cursor while the actual handler sits on a nested `.claude-sessions-system-events-expand` span. Don't infer "this is chrome, make it unselectable" from the cursor alone
 
 ## ESLint
 
@@ -123,10 +125,18 @@ Reference document for known pitfalls. Not auto-included — use `@GOTCHAS.md` w
 - Image clipboard copy validates MIME type against `SAFE_IMAGE_TYPES` whitelist
 - File picker normalizes drag-and-drop filenames with `path.basename()` to prevent path traversal
 - MCP tool names follow `mcp__<server>__<tool>` — `parseMcpToolName()` splits on double underscores
+- `ai-title` is listed in **both** `SKIP_RECORD_TYPES` and `SKIP_TYPE_STRINGS`, so it was silently discarded as metadata noise for a long time even though the constant existed. Any scan that wants a value out of a skipped record type must test for it *before* the skip sweep — see the `custom-title`/`ai-title` interceptions in `claude-parser.ts` and `streaming-reader.ts`. Leave the record in the skip lists so `session-search` doesn't index it as searchable content
+- Session naming has three tiers, resolved only in `utils/session-title.ts`: `customTitle` (`/rename`) → `aiTitle` (auto-generated) → `project`. Use `sessionDisplayName()` for labels and headings (never empty) and `sessionTitle()` for a "Title:" row or frontmatter key (undefined when there is no real title, so it doesn't duplicate the adjacent Project value). Don't re-inline `customTitle || project` — that expression was copy-pasted across six files and every one of them showed the project name for every session once `custom-title` stopped being emitted
+- The session list sorts on the last `user` record's timestamp (`utils/session-order.ts`), not the file mtime — background writes keep touching a session file after the last prompt, so the two orderings agree on only ~14% of positions and can diverge by days. Don't "simplify" it back to `b.mtime - a.mtime`
+- `last-prompt` looks like the right source for that sort key but is not usable: it has no `timestamp` field, and its `leafUuid` points at any record type (usually `system`), so resolving it needs a uuid→timestamp map over every line — the full-parse cost the metadata scan exists to avoid
+- Pulling one field out of a large record in `streaming-reader.ts`: check the record type against the **first 200 chars only** (a nested `"type":"user"` inside a tool result would otherwise match), then extract with a narrow regex rather than `JSON.parse` — user records reach multiple KB
+- Adding a field to `CachedSessionMeta` requires bumping `INDEX_VERSION` in `session-index.ts` — cached entries are reused whenever the version matches and the mtime is unchanged, so without a bump already-indexed sessions keep serving the old shape forever
 - Tool result content arrays can contain image items alongside text items — images stored in `ToolResultBlock.images[]`
 - Claude Code downscales images ~25x before embedding as base64 in JSONL. Original file path may be a temp file already cleaned up
 - SVG ID remapping via `split().join()` for mermaid modals — duplicate IDs in DOM cause cloned SVG to inherit original's styles instead of its own
 - `XMLSerializer` for SVG serialization — more correct than `outerHTML` for SVG elements
+- `makeClickable()` installs a **capture-phase** click listener that calls `stopImmediatePropagation()` when a text selection reaches into the element — so the click that ends a drag-select never toggles a block. `stopImmediatePropagation()` halts the entire dispatch, which means a caller's own `click` handler must be attached *after* the `makeClickable()` call or it will fire anyway. The guard ignores clicks with `detail === 0` so the built-in Enter/Space handler (which calls `el.click()`) still works while text is selected
+- The selection guard is duplicated in `standalone-player.ts` as `selectionTouches()` — the player is embedded as a string and cannot import from `render-helpers.ts`. Change one, change the other
 
 ## Public API
 

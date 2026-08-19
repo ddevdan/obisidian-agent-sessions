@@ -8,6 +8,37 @@ For Claude Code version compatibility, see [COMPATIBILITY.md](COMPATIBILITY.md).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Sessions are ordered by when you last prompted them, not by file mtime** — the session browser and search panel sorted on the file's modification time, which drifts away from your last prompt. Background writes keep touching a session file after you stop typing: title regeneration, file-history snapshots, subagent activity. Measured over a 361-session corpus, mtime ordering and last-prompt ordering agreed on only **14%** of positions, with drift reaching days. One real session was last prompted at 17:29 but written at 19:36 — under the old sort it outranked sessions touched far more recently
+
+  The sort key is the timestamp of the last user record, resolved in `utils/session-order.ts`, with mtime kept as the fallback for a session that has no user record. Coverage is 100% of sessions with content
+
+  Claude Code's own `last-prompt` record was the obvious source but is unusable as a key: it carries no timestamp, and its `leafUuid` points at any record type (usually `system`), so resolving it would mean building a uuid→timestamp map over every line — the full-parse cost the metadata scan exists to avoid. The last user record's timestamp agrees with it to a median of 26 seconds while covering 100% of sessions instead of 76%. The timestamp is pulled with a narrow regex after a head-only type check, verified against a full parse across the corpus at 360/360 exact with no false matches
+
+  The session index cache version is bumped to 4 to re-read already-indexed sessions
+
+### Added
+- **Session titles in the browser and search panels** — Claude Code names every session it can, and shows that name in its own `/resume` picker. The plugin was throwing the name away: `ai-title` was listed in both `SKIP_RECORD_TYPES` and `SKIP_TYPE_STRINGS`, so it got discarded as metadata noise
+
+  The session browser and the search panel now show the real title — `Fix re-entrancy bug in switchToNote` instead of `ankihub`. That matters most in a monorepo or a busy project, where every session previously displayed the same project name and the picker gave you nothing to tell them apart. The browser's filter also matches on any of a session's names, not just the one on display, so typing a remembered title finds it
+
+  Titles resolve in three tiers, in one place (`utils/session-title.ts`): `customTitle` from `/rename` wins, then `aiTitle`, then the project name. `ai-title` records are emitted repeatedly as a session evolves, so the last one wins. Roughly half of sessions carry a title — short ones never get one generated, and those still show the project name as before. The summary panel, both exporters, and distill frontmatter use the same resolution, and only print a "Title:" row when a real title exists rather than repeating the adjacent Project value
+
+  `custom-title` support is retained for older sessions but appears to be gone from current Claude Code — zero occurrences across a 361-session corpus spanning 2.1.215–2.1.235. Every surface had been falling back to the project name for every session as a result
+
+  The session index cache version is bumped to 3, so already-indexed sessions are re-read once to pick up their titles
+
+### Fixed
+- **Session text could not be selected or copied** — Obsidian's `app.css` sets `user-select: none` on `body` and `user-select` inherits, so everything the plugin rendered was unselectable. You could read an assistant reply or a line of command output but not drag across it, and the copy buttons were the only way to get text out
+
+  Each view root (`.claude-sessions-timeline-container`, `.claude-sessions-search-view`) now opts back in with `user-select: text`, so message text, thinking blocks, tool input and results, diffs, ANSI terminal output, summary values, system events, and search snippets are all selectable and copyable. Interactive chrome opts back out: the 16 clickable elements that were missing a selection opt-out (copy and download buttons, control-bar buttons, the compaction header, image thumbnails, mermaid containers, search buttons) now carry one, so a drag that starts on a header still expands the block instead of painting a selection
+
+  `makeClickable()` also installs a capture-phase click guard, so the click that ends a drag-select no longer collapses the block you were reading — the block stays open and the selection survives. Keyboard activation is unaffected: Enter and Space still toggle while text is selected. The same guard is mirrored in exported HTML
+
+---
+
 ## [0.3.18] - 2026-08-02
 
 ### Fixed

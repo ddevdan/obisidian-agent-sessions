@@ -2,7 +2,7 @@ import { Platform, Notice } from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { SKIP_TYPE_STRINGS, CUSTOM_TITLE_PATTERN } from '../constants';
+import { SKIP_TYPE_STRINGS, CUSTOM_TITLE_PATTERN, AI_TITLE_PATTERN, RT_AI_TITLE, USER_TYPE_PATTERN, RE_RECORD_TIMESTAMP } from '../constants';
 
 interface ReadProgress {
 	bytesRead: number;
@@ -69,8 +69,12 @@ export interface QuickMetadata {
 	cwd?: string;
 	startTime?: string;
 	hasContent: boolean;
-	/** User-defined session name from /rename command (last value). */
+	/** User-defined session name from /rename command (last value). Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (last value). */
+	aiTitle?: string;
+	/** ISO timestamp of the last user prompt — when the human last typed something. */
+	lastPromptTime?: string;
 }
 
 
@@ -78,7 +82,9 @@ export interface QuickMetadata {
  * Read a JSONL file line-by-line and extract metadata from early records.
  * Skips large record types by prefix check to avoid parsing multi-KB JSON.
  * Extracts sessionId/cwd/startTime from first 100 lines.
- * Scans entire file for custom-title records (keeps last value). Desktop only.
+ * Scans entire file for custom-title, ai-title and user records, keeping the last
+ * value of each — the titles and the last prompt time all live near the end of a
+ * session, so none of them can be read from the first 100 lines. Desktop only.
  */
 export async function extractQuickMetadataAsync(filePath: string): Promise<QuickMetadata> {
 	if (!Platform.isDesktop) return { hasContent: false };
@@ -117,6 +123,32 @@ export async function extractQuickMetadataAsync(filePath: string): Promise<Quick
 				return;
 			}
 
+			// Same for ai-title, Claude Code's auto-generated name. Regenerated as the
+			// session evolves, so scan the whole file and keep the last value. Must be
+			// tested before the SKIP_TYPE_STRINGS sweep below, which also matches it.
+			if (trimmed.includes(AI_TITLE_PATTERN)) {
+				try {
+					const record = JSON.parse(trimmed) as Record<string, unknown>;
+					if (record['type'] === RT_AI_TITLE && typeof record['aiTitle'] === 'string') {
+						result.aiTitle = record['aiTitle'];
+					}
+				} catch {
+					// Malformed JSON — skip
+				}
+				return;
+			}
+
+			// Last user prompt time, tracked over the whole file (keep last). The file's
+			// mtime is a poor stand-in: background writes keep touching it long after the
+			// human stopped typing, so the two orderings agree on only ~13% of positions.
+			// The type check looks at the head only, so a nested "type":"user" inside a
+			// tool result can't match; the regex then avoids parsing multi-KB records.
+			const lineHead = trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
+			if (lineHead.includes(USER_TYPE_PATTERN)) {
+				const ts = RE_RECORD_TIMESTAMP.exec(trimmed);
+				if (ts) result.lastPromptTime = ts[1];
+			}
+
 			// For other metadata, only process first MAX_LINES_FOR_BASIC lines
 			if (basicMetaDone || lineCount > MAX_LINES_FOR_BASIC) {
 				if (!basicMetaDone && lineCount > MAX_LINES_FOR_BASIC) {
@@ -126,9 +158,8 @@ export async function extractQuickMetadataAsync(filePath: string): Promise<Quick
 			}
 
 			// Skip large record types without full parsing — check substring within first 200 chars
-			const head = trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
 			for (const sub of SKIP_TYPE_STRINGS) {
-				if (head.includes(sub)) return;
+				if (lineHead.includes(sub)) return;
 			}
 
 			try {

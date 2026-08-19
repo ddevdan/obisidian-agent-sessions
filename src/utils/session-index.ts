@@ -2,7 +2,12 @@ import type { CachedSessionMeta, SessionIndexData } from '../types';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const INDEX_VERSION = 2;
+// Bump whenever a CachedSessionMeta field is added — cached entries are reused on an
+// unchanged mtime, so without a bump every already-indexed session keeps serving the
+// old shape forever.
+// 3: added aiTitle (otherwise every session keeps showing its project name)
+// 4: added lastPromptTime (otherwise the list keeps falling back to mtime ordering)
+const INDEX_VERSION = 4;
 const INDEX_FILENAME = 'session-index.json';
 
 export class SessionIndex {

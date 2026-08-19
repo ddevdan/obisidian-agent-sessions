@@ -38,6 +38,24 @@ export const SKIP_TYPE_STRINGS = [
 /** Substring pattern for custom-title records. */
 export const CUSTOM_TITLE_PATTERN = '"type":"custom-title"';
 
+/**
+ * Substring pattern for ai-title records — Claude Code's auto-generated session
+ * name, the same label its own /resume picker shows. Listed in SKIP_TYPE_STRINGS
+ * too, so every scan must test this pattern *before* the skip sweep.
+ */
+export const AI_TITLE_PATTERN = '"type":"ai-title"';
+
+/** Substring pattern for user records — used to find the last prompt time. */
+export const USER_TYPE_PATTERN = '"type":"user"';
+
+/**
+ * Pulls a record's timestamp without parsing the whole line. User records can be
+ * multi-KB (attachments, tool results), so JSON.parse on every one of them is the
+ * expensive path the metadata scan exists to avoid. Verified against a full parse
+ * over a 361-session corpus: 360/360 exact, no misses and no false matches.
+ */
+export const RE_RECORD_TIMESTAMP = /"timestamp":"([^"]+)"/;
+
 // ── Content block types ──────────────────────────────────────
 export const BT_TEXT = 'text';
 export const BT_THINKING = 'thinking';

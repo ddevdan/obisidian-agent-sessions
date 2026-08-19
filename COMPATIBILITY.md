@@ -18,12 +18,14 @@ This document tracks which Claude Code versions introduced JSONL format changes 
 | System events (`stop_hook_summary`) | ~2.1.90? | 0.2.13+ | New | Hook events with `hookInfos[]` array |
 | System events (`skill_listing`) | ~2.1.90? | 0.2.13+ | New | Available skills in `system` records |
 | System events (`task_reminder`) | ~2.1.90? | 0.2.13+ | New | Task tool reminders |
-| Custom titles (`/rename`) | ~2.1.90? | 0.2.13+ | New | `<custom-title>` XML in user records |
+| Custom titles (`/rename`) | ~2.1.90? | 0.2.13+ | Unobserved | `<custom-title>` XML in user records. Zero occurrences across a 361-session corpus spanning 2.1.215–2.1.235 — support retained for older sessions, but `ai-title` is what current versions emit. Wins over `ai-title` when present |
 | `PermissionRequest` hook event | 2.1.92+ | 0.2.13+ | New | Tool-level permission request indicators |
 | `pr-link` records | ~2.1.50? | 0.3.16+ | Skipped | PR number/URL/repo metadata, no renderable content |
 | `AskUserQuestion` option `preview` | ~2.1.92? | 0.3.16+ | New | Per-option mockup/code sample; rendered as collapsible preformatted block |
 | `agent-color` records | ~2.1.119? | 0.3.16+ | Skipped | Sibling of `agent-name`, metadata only |
 | `file-history-delta` records | ~2.1.214? | 0.3.16+ | Skipped | Per-file backup pointer, sibling of `file-history-snapshot` |
+| `last-prompt` records | ≤2.1.215 | 0.3.16+ | Skipped | `{"type":"last-prompt","lastPrompt":"...","leafUuid":"...","sessionId":"..."}`. Carries **no timestamp**, and `leafUuid` points at any record type (usually `system`, not `user`) — so it cannot supply a cheap recency key. The session list sorts on the last `user` record's timestamp instead, which agrees to a median of 26s and covers 100% of sessions vs 76%. Present on 73% of sessions |
+| `ai-title` records | ≤2.1.215 | 0.3.22+ | New | `{"type":"ai-title","aiTitle":"...","sessionId":"..."}` — Claude Code's auto-generated session name, the label its own `/resume` picker shows. Emitted repeatedly as the session evolves, so **keep the last**. Not version-gated: across 2.1.215–2.1.235 the same versions appear both with and without it, so absence means the session never got a title (short sessions), not an older format. Observed on ~50% of sessions |
 
 **Legend:**
 - `~` = Approximate version (not confirmed exactly when introduced)
@@ -31,6 +33,7 @@ This document tracks which Claude Code versions introduced JSONL format changes 
 - Stable = Confirmed working across multiple versions
 - New = Recently implemented, needs broader testing
 - Skipped = Metadata-only record, filtered out rather than rendered
+- Unobserved = Supported in code, but absent from the current corpus — kept for older sessions
 
 ---
 

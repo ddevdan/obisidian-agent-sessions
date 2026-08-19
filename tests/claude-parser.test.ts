@@ -430,6 +430,65 @@ describe('metadata extraction', () => {
 
 		expect(session.metadata.customTitle).toBeUndefined();
 	});
+
+	it('extracts aiTitle from ai-title record', () => {
+		const session = parse(jsonl(
+			userText('hi'),
+			{ type: 'ai-title', aiTitle: 'Fix the auth middleware', sessionId: 'abc' },
+			assistantText('hello'),
+		));
+
+		expect(session.metadata.aiTitle).toBe('Fix the auth middleware');
+	});
+
+	// Claude Code regenerates the title as the session evolves — most real
+	// sessions carry several ai-title records.
+	it('uses the last aiTitle when the title is regenerated', () => {
+		const session = parse(jsonl(
+			userText('hi'),
+			{ type: 'ai-title', aiTitle: 'First guess', sessionId: 'abc' },
+			assistantText('hello'),
+			{ type: 'ai-title', aiTitle: 'Better guess', sessionId: 'abc' },
+			userText('more'),
+			{ type: 'ai-title', aiTitle: 'Final title', sessionId: 'abc' },
+		));
+
+		expect(session.metadata.aiTitle).toBe('Final title');
+	});
+
+	it('leaves aiTitle undefined when no ai-title record exists', () => {
+		const session = parse(jsonl(
+			userText('hi'),
+			assistantText('hello'),
+		));
+
+		expect(session.metadata.aiTitle).toBeUndefined();
+	});
+
+	// RT_AI_TITLE is in SKIP_RECORD_TYPES, so the capture must run before the
+	// skip check — and the record must not leak into the turn list either way.
+	it('does not render an ai-title record as a turn', () => {
+		const session = parse(jsonl(
+			userText('hi'),
+			{ type: 'ai-title', aiTitle: 'Some title', sessionId: 'abc' },
+			assistantText('hello'),
+		));
+
+		expect(session.turns).toHaveLength(2);
+		expect(session.metadata.aiTitle).toBe('Some title');
+	});
+
+	it('captures customTitle and aiTitle independently', () => {
+		const session = parse(jsonl(
+			userText('hi'),
+			{ type: 'ai-title', aiTitle: 'Auto name', sessionId: 'abc' },
+			{ type: 'custom-title', customTitle: 'Renamed by hand', sessionId: 'abc' },
+			assistantText('hello'),
+		));
+
+		expect(session.metadata.aiTitle).toBe('Auto name');
+		expect(session.metadata.customTitle).toBe('Renamed by hand');
+	});
 });
 
 // ─── Orphaned / Pending Tool Calls ─────────────────────────────

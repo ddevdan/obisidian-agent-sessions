@@ -6,6 +6,7 @@
 import { Session, Turn, ToolUseBlock } from '../types';
 import { DistilledFrontmatter, DISTILL_SCHEMA_VERSION } from './types';
 import { basename } from '../utils/path-utils';
+import { sessionTitle } from '../utils/session-title';
 
 /** Tools that operate on file paths. */
 const FILE_PATH_TOOLS = ['Read', 'Edit', 'Write'] as const;
@@ -43,7 +44,8 @@ export function extractFrontmatter(
 	// Optional metadata fields
 	if (metadata.branch) frontmatter.branch = metadata.branch;
 	if (metadata.model) frontmatter.model = metadata.model;
-	if (metadata.customTitle) frontmatter.title = metadata.customTitle;
+	const title = sessionTitle(metadata);
+	if (title) frontmatter.title = title;
 	if (metadata.startTime) frontmatter.start_time = metadata.startTime;
 
 	// Timing
