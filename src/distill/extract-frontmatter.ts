@@ -7,6 +7,7 @@ import { Session, Turn, ToolUseBlock } from '../types';
 import { DistilledFrontmatter, DISTILL_SCHEMA_VERSION } from './types';
 import { basename } from '../utils/path-utils';
 import { sessionTitle } from '../utils/session-title';
+import { PROTOCOL_SCHEME } from '../constants';
 
 /** Tools that operate on file paths. */
 const FILE_PATH_TOOLS = ['Read', 'Edit', 'Write'] as const;
@@ -84,7 +85,7 @@ export function extractFrontmatter(
 
 	// Source path + Obsidian URI
 	frontmatter.source_path = session.rawPath;
-	frontmatter.obsidian_uri = `obsidian://claude-sessions?session=${encodeURIComponent(session.rawPath)}`;
+	frontmatter.obsidian_uri = `obsidian://${PROTOCOL_SCHEME}?session=${encodeURIComponent(session.rawPath)}`;
 
 	return frontmatter;
 }

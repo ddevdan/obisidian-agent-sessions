@@ -96,6 +96,7 @@ async function buildEntry(
 			customTitle: meta.customTitle,
 			aiTitle: meta.aiTitle,
 			lastPromptTime: meta.lastPromptTime,
+			format: meta.format,
 		};
 		index.set(filePath, cached);
 		wasUpdated = true;
@@ -112,7 +113,8 @@ async function buildEntry(
 		entry: {
 			id: cached.sessionId || basename(filePath).replace(/\.\w+$/, ''),
 			project,
-			format: 'claude',
+			// Detected during discovery; falls back only for a pre-existing cache entry.
+			format: cached.format ?? 'claude',
 			date,
 			path: filePath,
 			cwd: cached.cwd,

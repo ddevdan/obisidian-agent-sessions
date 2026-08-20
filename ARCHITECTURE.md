@@ -1,8 +1,19 @@
-# Architecture — Claude Sessions Plugin
+# Architecture — Agent Sessions Plugin
 
 Reference document for detailed implementation. Not auto-included — use `@ARCHITECTURE.md` when needed.
 
 ## JSONL Parser (`parsers/`)
+
+### Format Detection (`detect.ts`)
+
+`detectParser()` holds an ordered array of parser instances and returns the first whose
+`canParse()` accepts the transcript's opening lines. Detection is **by record shape only**,
+never by filename or directory, so a transcript opens from wherever it was found. Adding a
+format means one `BaseParser` subclass plus one registry entry.
+
+`BaseParser` requires exactly three members: `format`, `canParse(firstLines)`, `parse(content,
+filePath)`. Everything else — line splitting, JSON guards, timestamp normalisation — is
+inherited.
 
 ### Record Types (Claude Code JSONL format)
 
@@ -66,9 +77,48 @@ The parser uses instance state during `buildTurns()`:
 - Subagent JSONL marks all records `isSidechain: true` → parser needs `allowSidechain: true`
 - Resolution via `resolveSubAgentSessions()` in `claude-subagent.ts`
 
+### pi Parser (`pi-parser.ts`)
+
+pi's `SessionEntry` union declares ten record types; five have been observed in real
+transcripts and are handled below. The conversation role is nested at `message.role` rather
+than being the record's own `type` — see `COMPATIBILITY.md` for the full mapping, including
+the types not yet seen.
+
+| pi record / role       | Handling                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `session`              | Session identity: `id`, `cwd`, `version`, `timestamp`. First line of the file     |
+| `message` / `user`      | User turn from `content[]`                                                        |
+| `message` / `assistant` | Assistant turn. Consecutive records merge into one Turn, as with Claude Code      |
+| `message` / `toolResult` | Tool result attached to its call via `toolCallId`; `isError` marks failure       |
+| `message` / `bashExecution` | Command block. Payload is on the message (`command`, `output`, `exitCode`)   |
+| `thinking_level_change`, `model_change` | Skipped (metadata only)                                          |
+
+Transcripts are trees (`parentId` on every record) but are read linearly in file order; the
+viewer's model is a flat turn list.
+
+### Discovery Probes (`format-probes.ts`)
+
+Discovery cannot ask a parser what a line means — it scans every transcript on every browser
+open and avoids `JSON.parse` on multi-KB lines. Probes supply that knowledge per format, in
+two tiers:
+
+- **Record tier** (`isConversationRecord`, `sessionIdFrom`) reads an already-parsed record.
+  Correctness-critical checks belong here. A head-level test cannot do this job: Claude Code
+  writes its top-level `type` at a median offset of 1146 characters, up to 48KB in.
+- **Line tier** (`isUserPromptLine`) sees a 200-character head, for the whole-file sweep that
+  dates a session by its last prompt. A miss degrades to the file mtime.
+
+Defining "has content" against a single format's record shape is what previously hid every pi
+session — they were judged empty before any parser was consulted.
+
 ### Cost Estimation
 
 Per-million-token pricing by model family (opus/sonnet/haiku) in `estimateCost()`. Model detected by substring match on model ID.
+
+`SessionStats.costSource` records provenance: `computed` (this table), `recorded` (the figure
+the transcript itself reported), or `unknown` (show no cost). pi is always `recorded` — it
+runs non-Anthropic models, and `getPricing()` silently falls back to Sonnet for anything
+unrecognised, so applying the table there would invent a figure.
 
 ## Rendering Pipeline (`views/`)
 

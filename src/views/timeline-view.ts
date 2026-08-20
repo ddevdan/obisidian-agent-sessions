@@ -4,6 +4,7 @@ import { makeClickable } from './render-helpers';
 import { Session, PluginSettings } from '../types';
 import { TimelineRenderer } from './timeline-renderer';
 import { readFileContent, listDirectoryFiles } from '../utils/streaming-reader';
+import { sessionDisplayName } from '../utils/session-title';
 import { detectParser } from '../parsers/detect';
 import { resolveSubAgentSessions } from '../parsers/claude-subagent';
 import { BT_TOOL_USE, SUBAGENT_TOOL_NAMES } from '../constants';
@@ -86,7 +87,7 @@ export class TimelineView extends ItemView {
 
 	getDisplayText(): string {
 		const meta = this.session?.metadata;
-		return meta?.customTitle || meta?.project || 'Claude sessions';
+		return (meta && sessionDisplayName(meta)) || 'Agent sessions';
 	}
 
 	getIcon(): string {
@@ -364,7 +365,7 @@ export class TimelineView extends ItemView {
 		if (pendingTool.id === this.lastNotifiedToolId) return;
 		this.lastNotifiedToolId = pendingTool.id;
 
-		const displayName = session.metadata.customTitle || session.metadata.project || 'Claude sessions';
+		const displayName = sessionDisplayName(session.metadata) || 'Agent sessions';
 		const toolName = pendingTool.name;
 		const title = `✦ ${displayName}`;
 		const body = `"${toolName}" is waiting for permission`;

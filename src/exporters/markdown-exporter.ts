@@ -6,6 +6,7 @@ import { ANSI_STRIP_RE } from '../constants';
 import type { ExportOptions } from '../views/export-modal';
 import { basename } from '../utils/path-utils';
 import { sessionDisplayName, sessionTitle } from '../utils/session-title';
+import { resumeCommand } from '../utils/session-resume';
 
 interface PendingImage {
 	fileName: string;
@@ -249,7 +250,7 @@ function buildSummarySection(session: Session): string {
 		lines.push(`- **Turns:** ${stats.userTurns} user / ${stats.assistantTurns} assistant = ${meta.totalTurns} total`);
 	}
 	lines.push(`- **Session ID:** \`${meta.id}\``);
-	lines.push(`- **Resume:** \`claude --resume ${meta.id}\``);
+	lines.push(`- **Resume:** \`${resumeCommand(meta.format, meta.id)}\``);
 	lines.push('');
 
 	// Parse warnings

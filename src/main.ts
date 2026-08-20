@@ -10,6 +10,8 @@ import { exportToHTML } from './exporters/html-exporter';
 import { ExportModal, type ExportOptions } from './views/export-modal';
 import { readFileContent, listDirectoryFiles } from './utils/streaming-reader';
 import { detectParser } from './parsers/detect';
+import { PROTOCOL_SCHEME, PROTOCOL_SCHEME_LEGACY } from './constants';
+import { resumeCommand } from './utils/session-resume';
 import { resolveSubAgentSessions } from './parsers/claude-subagent';
 import { expandHome } from './utils/path-utils';
 import { SessionIndex } from './utils/session-index';
@@ -216,10 +218,10 @@ export default class ClaudeSessionsPlugin extends Plugin {
 			name: 'Copy resume to clipboard',
 			checkCallback: (checking: boolean) => {
 				const view = this.getActiveTimelineView();
-				const id = view?.getSession()?.metadata.id;
-				if (!id) return false;
+				const metadata = view?.getSession()?.metadata;
+				if (!metadata?.id) return false;
 				if (checking) return true;
-				void navigator.clipboard.writeText(`claude --resume ${id}`);
+				void navigator.clipboard.writeText(resumeCommand(metadata.format, metadata.id));
 				new Notice('Copied resume command');
 				return true;
 			},
@@ -271,8 +273,13 @@ export default class ClaudeSessionsPlugin extends Plugin {
 			},
 		});
 
-		// Protocol handler: obsidian://claude-sessions?session=/path/to/session.jsonl&turn=7
-		this.registerObsidianProtocolHandler('claude-sessions', async (params) => {
+		// Protocol handlers: obsidian://agent-sessions?session=/path/to/session.jsonl&turn=7
+		//
+		// Both schemes are registered and both are permanent. The plugin writes these
+		// links into distilled notes and exported artifacts it does not own and cannot
+		// rewrite, and external scripts use them too, so there is no mechanism by which
+		// deprecating the older name could reach the links already out there.
+		const openFromParams = async (params: unknown) => {
 			const p = params as Record<string, string>;
 			const sessionPath = p['session'];
 			if (!sessionPath) {
@@ -281,7 +288,10 @@ export default class ClaudeSessionsPlugin extends Plugin {
 			}
 			const turnIndex = p['turn'] ? parseInt(p['turn'], 10) : undefined;
 			await this.openSessionByPath(sessionPath, turnIndex);
-		});
+		};
+		for (const scheme of [PROTOCOL_SCHEME, PROTOCOL_SCHEME_LEGACY]) {
+			this.registerObsidianProtocolHandler(scheme, openFromParams);
+		}
 	}
 
 	async openSessionByPath(sessionPath: string, turnIndex?: number): Promise<void> {

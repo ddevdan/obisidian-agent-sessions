@@ -48,6 +48,7 @@ export const AI_TITLE_PATTERN = '"type":"ai-title"';
 /** Substring pattern for user records — used to find the last prompt time. */
 export const USER_TYPE_PATTERN = '"type":"user"';
 
+
 /**
  * Pulls a record's timestamp without parsing the whole line. User records can be
  * multi-KB (attachments, tool results), so JSON.parse on every one of them is the
@@ -55,6 +56,62 @@ export const USER_TYPE_PATTERN = '"type":"user"';
  * over a 361-session corpus: 360/360 exact, no misses and no false matches.
  */
 export const RE_RECORD_TIMESTAMP = /"timestamp":"([^"]+)"/;
+
+// ── pi transcript protocol ───────────────────────────────────
+// pi (@earendil-works/pi-coding-agent). The conversation role is nested one level
+// down, inside `message.role`, rather than being the record's own `type` as in Claude
+// Code transcripts — the distinction that made a Claude-shaped content check reject
+// every pi session.
+//
+// pi's type union declares ten record types: session, message, session_info,
+// thinking_level_change, model_change, compaction, branch_summary, label, custom and
+// custom_message. Only the first five appear in the transcripts observed so far; the
+// rest are declared below as they are handled. Unhandled types are counted and warned
+// about rather than dropped silently.
+
+/** pi record types (the record's own `type` field). */
+export const PI_RT_SESSION = 'session';
+export const PI_RT_MESSAGE = 'message';
+export const PI_RT_SESSION_INFO = 'session_info';
+export const PI_RT_THINKING_LEVEL_CHANGE = 'thinking_level_change';
+export const PI_RT_MODEL_CHANGE = 'model_change';
+
+/** pi message roles (nested at `message.role`). */
+export const PI_ROLE_USER = 'user';
+export const PI_ROLE_ASSISTANT = 'assistant';
+export const PI_ROLE_TOOL_RESULT = 'toolResult';
+export const PI_ROLE_BASH_EXECUTION = 'bashExecution';
+
+/** pi content block types (inside `message.content[]`). */
+export const PI_BT_TEXT = 'text';
+export const PI_BT_THINKING = 'thinking';
+export const PI_BT_TOOL_CALL = 'toolCall';
+
+/**
+ * Line *prefixes* for the cheap discovery sweep (see `parsers/format-probes.ts`).
+ *
+ * Anchored to the start of the line, not searched within it: the literal
+ * `"type":"message"` also appears early in Claude assistant records (7180 of them in a
+ * real corpus), so a plain substring test is not a pi signal. pi writes the record type
+ * first on every line, and Claude never does, which makes the prefix an exact
+ * discriminator.
+ */
+export const PI_LINE_PREFIX_MESSAGE = '{"type":"message"';
+export const PI_LINE_PREFIX_SESSION = '{"type":"session"';
+
+/**
+ * pi's user-set session name, appended as a `session_info` entry by `--name` or
+ * `setSessionName()`. The latest entry wins, and a blank name is an explicit clear
+ * rather than a title — matching pi's own resolution.
+ */
+export const PI_SESSION_INFO_PATTERN = '{"type":"session_info"';
+
+/**
+ * Pulls a nested `message.role` without parsing the line. Safe as a pi signal only
+ * once the line is known to be a pi record — Claude transcripts also carry a
+ * `message.role`, so `PI_LINE_PREFIX_MESSAGE` must match first.
+ */
+export const RE_PI_ROLE = /"role":"([a-zA-Z]+)"/;
 
 // ── Content block types ──────────────────────────────────────
 export const BT_TEXT = 'text';
@@ -112,6 +169,20 @@ export const RE_TN_DURATION = /<duration_ms>([\s\S]*?)<\/duration_ms>/;
 
 // ── Agent ID extraction (from tool_result text) ────────────
 export const RE_AGENT_ID = /agentId:\s*(\S+)/;
+
+// ── Protocol schemes ─────────────────────────────────────────
+/**
+ * Scheme for links the plugin mints: `obsidian://agent-sessions?session=<path>&turn=<n>`.
+ */
+export const PROTOCOL_SCHEME = 'agent-sessions';
+
+/**
+ * The scheme this plugin used when it was Claude-only. Still registered, permanently.
+ * Links under it are written into distilled notes, exported artifacts and external
+ * scripts that the plugin does not own and cannot rewrite, so retiring it would just
+ * break them later instead of now.
+ */
+export const PROTOCOL_SCHEME_LEGACY = 'claude-sessions';
 
 // ── Display strings ──────────────────────────────────────────
 export const TEXT_SESSION_ENDED = '*Session ended*';

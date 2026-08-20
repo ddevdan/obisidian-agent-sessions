@@ -3,6 +3,8 @@ import type { Session, SessionMetadata, SessionStats } from '../types';
 import { type RenderContext, makeClickable, addCopyButton } from './render-helpers';
 import { fetchRateLimits, type RateLimitData } from '../utils/rate-limits';
 import { sessionDisplayName, sessionTitle } from '../utils/session-title';
+import { PROTOCOL_SCHEME } from '../constants';
+import { resumeCommand } from '../utils/session-resume';
 
 /** Render the session summary panel (collapsible) above the timeline. */
 export function renderSummary(session: Session, container: HTMLElement, ctx: RenderContext): void {
@@ -220,13 +222,13 @@ export function renderSummary(session: Session, container: HTMLElement, ctx: Ren
 	addCopyButton(idRow, metadata.id, 'Copy session ID');
 	addCopyButton(idRow, session.rawPath, 'Copy file path');
 
-	const resumeCmd = `claude --resume ${metadata.id}`;
+	const resumeCmd = resumeCommand(metadata.format, metadata.id);
 	const resumeRow = idSection.createDiv({ cls: 'claude-sessions-dash-id-row' });
 	resumeRow.createSpan({ cls: 'claude-sessions-dash-id-label', text: 'Resume' });
 	resumeRow.createSpan({ cls: 'claude-sessions-dash-id-value', text: resumeCmd });
 	addCopyButton(resumeRow, resumeCmd, 'Copy resume command');
 
-	const obsidianUri = `obsidian://claude-sessions?session=${encodeURIComponent(session.rawPath)}`;
+	const obsidianUri = `obsidian://${PROTOCOL_SCHEME}?session=${encodeURIComponent(session.rawPath)}`;
 	const displayName = sessionDisplayName(metadata);
 	const mdLink = `[${displayName} session](${obsidianUri})`;
 	const uriRow = idSection.createDiv({ cls: 'claude-sessions-dash-id-row' });

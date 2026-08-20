@@ -580,6 +580,7 @@ export class ClaudeParser extends BaseParser {
 			cumulativeDroppedTokens,
 			compactionCount,
 			costUSD,
+			costSource: 'computed',
 			toolUseCounts,
 			durationMs,
 		};

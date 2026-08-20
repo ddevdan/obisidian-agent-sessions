@@ -347,3 +347,131 @@ export function assistantToolReference(toolNames: string[], opts?: {
 		},
 	};
 }
+
+// ── pi transcript fixtures ──────────────────────────────────────────────
+// pi (@earendil-works/pi-coding-agent), session record `version: 3`, CLI 0.84.2.
+// Shapes mirror real transcripts: the record's own `type` is always `message` for
+// conversation, and the role sits one level down at `message.role`.
+
+/** pi session header record — the first line of every pi transcript. */
+export function piSession(opts?: {
+	id?: string; cwd?: string; version?: number; timestamp?: string;
+}): Record<string, unknown> {
+	return {
+		type: 'session',
+		version: opts?.version ?? 3,
+		id: opts?.id ?? '019fd343-27fe-7ae2-ae4b-efca854513b1',
+		timestamp: opts?.timestamp ?? '2026-08-05T18:50:21.566Z',
+		cwd: opts?.cwd ?? '/Users/daniel/lab/ankihub',
+	};
+}
+
+/** Wrap a pi message payload in its record envelope. */
+function piRecord(message: Record<string, unknown>, opts?: {
+	id?: string; parentId?: string; timestamp?: string;
+}): Record<string, unknown> {
+	const timestamp = opts?.timestamp ?? '2026-08-05T18:50:22.000Z';
+	return {
+		type: 'message',
+		id: opts?.id ?? crypto.randomUUID(),
+		parentId: opts?.parentId ?? null,
+		timestamp,
+		message: { timestamp, ...message },
+	};
+}
+
+/** pi user prompt. */
+export function piUser(text: string, opts?: { timestamp?: string }): Record<string, unknown> {
+	return piRecord({ role: 'user', content: [{ type: 'text', text }] }, opts);
+}
+
+/** pi assistant record carrying arbitrary content blocks. */
+export function piAssistant(content: Record<string, unknown>[], opts?: {
+	id?: string;
+	timestamp?: string;
+	model?: string;
+	stopReason?: string;
+	errorMessage?: string;
+	usage?: {
+		input?: number; output?: number; cacheRead?: number; cacheWrite?: number;
+		reasoning?: number; totalTokens?: number; cost?: { total?: number };
+	};
+}): Record<string, unknown> {
+	return piRecord({
+		role: 'assistant',
+		model: opts?.model ?? 'gpt-5.6-sol',
+		provider: 'openai-codex',
+		content,
+		...(opts?.stopReason ? { stopReason: opts.stopReason } : {}),
+		...(opts?.errorMessage ? { errorMessage: opts.errorMessage } : {}),
+		...(opts?.usage ? { usage: opts.usage } : {}),
+	}, opts);
+}
+
+/** pi assistant text block. */
+export function piText(text: string): Record<string, unknown> {
+	return { type: 'text', text };
+}
+
+/** pi assistant reasoning block. */
+export function piThinking(thinking: string): Record<string, unknown> {
+	return { type: 'thinking', thinking };
+}
+
+/** pi tool invocation block. */
+export function piToolCall(name: string, id: string, args: Record<string, unknown>): Record<string, unknown> {
+	return { type: 'toolCall', id, name, arguments: args };
+}
+
+/** pi tool output, addressed to a call by `toolCallId`. */
+export function piToolResult(opts: {
+	toolCallId: string; toolName?: string; content?: string; isError?: boolean; timestamp?: string;
+}): Record<string, unknown> {
+	return piRecord({
+		role: 'toolResult',
+		toolCallId: opts.toolCallId,
+		toolName: opts.toolName ?? 'read',
+		isError: opts.isError ?? false,
+		content: [{ type: 'text', text: opts.content ?? 'ok' }],
+		details: {},
+	}, { timestamp: opts.timestamp });
+}
+
+/** pi shell execution. Its payload sits on the message; `content` is null. */
+export function piBashExecution(opts: {
+	command: string; output?: string; exitCode?: number; timestamp?: string;
+}): Record<string, unknown> {
+	return piRecord({
+		role: 'bashExecution',
+		command: opts.command,
+		output: opts.output ?? '',
+		exitCode: opts.exitCode ?? 0,
+		cancelled: false,
+		truncated: false,
+		excludeFromContext: false,
+		content: null,
+	}, { timestamp: opts.timestamp });
+}
+
+/** pi metadata records that carry no renderable content. */
+export function piModelChange(modelId = 'gpt-5.6-sol'): Record<string, unknown> {
+	return { type: 'model_change', id: crypto.randomUUID(), parentId: null, timestamp: '2026-08-05T18:50:21.900Z', modelId, provider: 'openai-codex' };
+}
+
+export function piThinkingLevelChange(thinkingLevel = 'high'): Record<string, unknown> {
+	return { type: 'thinking_level_change', id: crypto.randomUUID(), parentId: null, timestamp: '2026-08-05T18:50:21.950Z', thinkingLevel };
+}
+
+/**
+ * pi's user-set session name (`--name`, `setSessionName()`), appended as a
+ * `session_info` entry. Latest wins; a blank name is an explicit clear.
+ */
+export function piSessionInfo(name: string, opts?: { timestamp?: string }): Record<string, unknown> {
+	return {
+		type: 'session_info',
+		id: crypto.randomUUID(),
+		parentId: null,
+		timestamp: opts?.timestamp ?? '2026-08-05T18:50:25.000Z',
+		name,
+	};
+}

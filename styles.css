@@ -1379,6 +1379,17 @@
 	margin-bottom: var(--size-2-2);
 }
 
+/* Exit status of a shell execution, for formats that record one. */
+.claude-sessions-bash-exit {
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.claude-sessions-bash-exit.is-error {
+	color: var(--text-error);
+	font-weight: 600;
+}
+
 .claude-sessions-tool-section-desc {
 	text-transform: none;
 	letter-spacing: normal;

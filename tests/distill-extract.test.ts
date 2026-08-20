@@ -144,14 +144,18 @@ describe('extractFrontmatter', () => {
 		expect(fm.source_path).toBe('/custom/path/to/session.jsonl');
 	});
 
-	it('extracts obsidian_uri', () => {
+	// New links are minted under the provider-neutral scheme. The older
+	// `claude-sessions` scheme is still registered and still resolves, so links already
+	// written into existing notes keep working — that guarantee lives in the protocol
+	// handlers, not here.
+	it('extracts obsidian_uri under the neutral scheme', () => {
 		const session = makeSession({
 			rawPath: '/Users/test/.claude/sessions/test.jsonl',
 		});
 		const fm = extractFrontmatter(session);
 
 		expect(fm.obsidian_uri).toBe(
-			'obsidian://claude-sessions?session=%2FUsers%2Ftest%2F.claude%2Fsessions%2Ftest.jsonl'
+			'obsidian://agent-sessions?session=%2FUsers%2Ftest%2F.claude%2Fsessions%2Ftest.jsonl'
 		);
 	});
 });

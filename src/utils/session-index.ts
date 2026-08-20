@@ -7,7 +7,13 @@ import * as path from 'path';
 // old shape forever.
 // 3: added aiTitle (otherwise every session keeps showing its project name)
 // 4: added lastPromptTime (otherwise the list keeps falling back to mtime ordering)
-const INDEX_VERSION = 4;
+// 5: pi support — cached entries were written when a pi transcript was judged empty,
+//    so they must be re-read or every pi session stays hidden
+// 6: added format — without it the list labels every session 'claude', so pi sessions are
+//    indistinguishable from Claude ones even though they are present
+// 7: pi session names — entries cached before this were never scanned for `session_info`,
+//    so a named pi session would keep showing its project name
+const INDEX_VERSION = 7;
 const INDEX_FILENAME = 'session-index.json';
 
 export class SessionIndex {

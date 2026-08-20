@@ -2,7 +2,9 @@ import { Platform, Notice } from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { SKIP_TYPE_STRINGS, CUSTOM_TITLE_PATTERN, AI_TITLE_PATTERN, RT_AI_TITLE, USER_TYPE_PATTERN, RE_RECORD_TIMESTAMP } from '../constants';
+import { SKIP_TYPE_STRINGS, CUSTOM_TITLE_PATTERN, AI_TITLE_PATTERN, RT_AI_TITLE, RE_RECORD_TIMESTAMP, PI_SESSION_INFO_PATTERN, PI_RT_SESSION_INFO } from '../constants';
+import { lineHead, isUserPromptLine, formatFromRecord, sessionIdFromRecord } from '../parsers/format-probes';
+import type { SessionFormat } from '../types';
 
 interface ReadProgress {
 	bytesRead: number;
@@ -75,6 +77,8 @@ export interface QuickMetadata {
 	aiTitle?: string;
 	/** ISO timestamp of the last user prompt — when the human last typed something. */
 	lastPromptTime?: string;
+	/** Which agent's format this transcript is in, from whichever probe recognised it. */
+	format?: SessionFormat;
 }
 
 
@@ -138,13 +142,31 @@ export async function extractQuickMetadataAsync(filePath: string): Promise<Quick
 				return;
 			}
 
+			// pi's user-set session name, appended as a `session_info` entry by `--name` or
+			// setSessionName(). Latest wins, and a blank name is an explicit clear rather
+			// than a title — the same rule pi itself applies. Anchored to the line prefix,
+			// since pi writes the record type first on every line.
+			if (trimmed.startsWith(PI_SESSION_INFO_PATTERN)) {
+				try {
+					const record = JSON.parse(trimmed) as Record<string, unknown>;
+					if (record['type'] === PI_RT_SESSION_INFO) {
+						const name = typeof record['name'] === 'string' ? record['name'].trim() : '';
+						result.customTitle = name || undefined;
+					}
+				} catch {
+					// Malformed JSON — skip
+				}
+				return;
+			}
+
 			// Last user prompt time, tracked over the whole file (keep last). The file's
 			// mtime is a poor stand-in: background writes keep touching it long after the
 			// human stopped typing, so the two orderings agree on only ~13% of positions.
-			// The type check looks at the head only, so a nested "type":"user" inside a
-			// tool result can't match; the regex then avoids parsing multi-KB records.
-			const lineHead = trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
-			if (lineHead.includes(USER_TYPE_PATTERN)) {
+			// No parse is available on this path, so each format supplies a head-level
+			// test; a miss degrades to the file mtime rather than to a wrong answer. The
+			// regex then avoids parsing what can be multi-KB records.
+			const head = lineHead(trimmed);
+			if (isUserPromptLine(head)) {
 				const ts = RE_RECORD_TIMESTAMP.exec(trimmed);
 				if (ts) result.lastPromptTime = ts[1];
 			}
@@ -159,19 +181,27 @@ export async function extractQuickMetadataAsync(filePath: string): Promise<Quick
 
 			// Skip large record types without full parsing — check substring within first 200 chars
 			for (const sub of SKIP_TYPE_STRINGS) {
-				if (lineHead.includes(sub)) return;
+				if (head.includes(sub)) return;
 			}
 
 			try {
 				const record = JSON.parse(trimmed) as Record<string, unknown>;
-				const recordType = record['type'] as string | undefined;
 
-				if (recordType === 'user' || recordType === 'assistant') {
+				// Ask every format whether this is a conversation record. Hard-coding one
+				// format's record shape here is what previously hid every pi session: pi
+				// nests the role at `message.role` instead of using the record's own
+				// `type`. This runs on an already-parsed record because a head-level test
+				// cannot do the job — Claude writes `type` a median 1146 characters into
+				// the line, and up to 48KB in.
+				const recordFormat = formatFromRecord(record);
+				if (recordFormat) {
 					result.hasContent = true;
+					result.format ??= recordFormat;
 				}
 
-				if (typeof record['sessionId'] === 'string' && !result.sessionId) {
-					result.sessionId = record['sessionId'];
+				if (!result.sessionId) {
+					const id = sessionIdFromRecord(record);
+					if (id) result.sessionId = id;
 				}
 				if (typeof record['cwd'] === 'string' && !result.cwd) {
 					result.cwd = record['cwd'];

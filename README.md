@@ -1,14 +1,14 @@
-# Claude Sessions
+# Agent Sessions
 
-An [Obsidian](https://obsidian.md/) plugin for viewing [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions. Browse, search, analyze, and export your Claude Code sessions as interactive timelines with live watch and rich tool rendering — right alongside your notes.
+An [Obsidian](https://obsidian.md/) plugin for viewing coding agent sessions. Browse, search, analyze, and export your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) sessions as interactive timelines with live watch and rich tool rendering — right alongside your notes.
 
-**Local-first and private.** Claude Sessions reads your JSONL session files directly from disk — no uploads, no syncing, no external services. Your conversations stay on your machine.
+**Local-first and private.** Agent Sessions reads your JSONL session files directly from disk — no uploads, no syncing, no external services. Your conversations stay on your machine.
 
 > [!IMPORTANT]
 > **v0.3.18** — Desktop-only.
 
 > [!NOTE]
-> **System identity access:** This plugin reads `HOME` environment variable and `os.homedir()` to locate Claude Code's session files at `~/.claude/projects/` and OAuth credentials for rate limit display. No data is transmitted — these values are used only to construct local file paths.
+> **System identity access:** This plugin reads `HOME` environment variable and `os.homedir()` to locate session files at `~/.claude/projects/` (Claude Code) and `~/.pi/agent/sessions/` (pi), and OAuth credentials for rate limit display. No data is transmitted — these values are used only to construct local file paths.
 
 ---
 
@@ -19,7 +19,14 @@ An [Obsidian](https://obsidian.md/) plugin for viewing [Claude Code](https://doc
 From Obsidian's settings or preferences:
 
 1. Community Plugins > Browse
-2. Search for "Claude Sessions"
+2. Search for "Agent Sessions"
+
+> [!NOTE]
+> The plugin **id** and folder name remain `claude-sessions` even though it is now called
+> Agent Sessions. Obsidian keys installed plugins, their settings directory and the public
+> API by id, so changing it would orphan your settings and break
+> `app.plugins.plugins['claude-sessions']` for anything using the API. The paths below are
+> correct as written.
 
 Manually:
 
