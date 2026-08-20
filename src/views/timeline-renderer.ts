@@ -1,4 +1,4 @@
-import { App, Modal, MarkdownRenderer, Component, setIcon } from 'obsidian';
+import { App, Modal, Component, setIcon } from 'obsidian';
 import type {
 	Turn, ContentBlock, AnsiBlock, CompactionBlock, SlashCommandBlock, BashCommandBlock,
 	PluginSettings, Session,
@@ -7,6 +7,7 @@ import type { InlineHookEvent } from './render-helpers';
 import {
 	type RenderContext, COLLAPSE_THRESHOLD,
 	makeClickable, shortModelName, addCopyButton, normalizeMarkdown, fence,
+	renderSessionMarkdown,
 } from './render-helpers';
 import { ANSI_PARSE_RE } from '../constants';
 import { renderSummary } from './summary-renderer';
@@ -471,7 +472,7 @@ export class TimelineRenderer {
 			wrapEl.addClass('claude-sessions-collapsible-wrap', 'is-collapsed');
 			const contentEl = wrapEl.createDiv({ cls: 'claude-sessions-collapsible-content' });
 			const mdEl = contentEl.createDiv({ cls });
-			void MarkdownRenderer.render(this.ctx.app, text, mdEl, '', this.ctx.component);
+			renderSessionMarkdown(text, mdEl, this.ctx);
 
 			wrapEl.createDiv({ cls: 'claude-sessions-collapsible-fade' });
 			const toggleBtn = wrapEl.createEl('button', {
@@ -488,7 +489,7 @@ export class TimelineRenderer {
 			});
 		} else {
 			const mdEl = wrapEl.createDiv({ cls });
-			void MarkdownRenderer.render(this.ctx.app, text, mdEl, '', this.ctx.component);
+			renderSessionMarkdown(text, mdEl, this.ctx);
 		}
 	}
 
@@ -512,7 +513,7 @@ export class TimelineRenderer {
 		if (isRedacted) {
 			body.createDiv({ cls: 'claude-sessions-thinking-redacted-body', text: 'Thinking content is not available — encrypted by Claude Code.' });
 		} else {
-			void MarkdownRenderer.render(this.ctx.app, normalizeMarkdown(text), body, '', this.ctx.component);
+			renderSessionMarkdown(normalizeMarkdown(text), body, this.ctx);
 		}
 
 		makeClickable(header, { label: 'Toggle thinking block', expanded: false });
@@ -534,7 +535,7 @@ export class TimelineRenderer {
 		header.createSpan({ cls: 'claude-sessions-slash-command-chevron', text: '\u25B6' });
 
 		const body = el.createDiv({ cls: 'claude-sessions-slash-command-body' });
-		void MarkdownRenderer.render(this.ctx.app, normalizeMarkdown(block.text), body, '', this.ctx.component);
+		renderSessionMarkdown(normalizeMarkdown(block.text), body, this.ctx);
 
 		makeClickable(header, { label: 'Toggle slash command output', expanded: false });
 		header.addEventListener('click', () => {
@@ -550,7 +551,7 @@ export class TimelineRenderer {
 		// Command as bash code block with INPUT label
 		const commandEl = el.createDiv({ cls: 'claude-sessions-bash-command-input' });
 		commandEl.createDiv({ cls: 'claude-sessions-tool-section-label', text: 'INPUT' });
-		void MarkdownRenderer.render(this.ctx.app, fence(block.command, 'bash'), commandEl, '', this.ctx.component);
+		renderSessionMarkdown(fence(block.command, 'bash'), commandEl, this.ctx);
 
 		// Result section with RESULT label (always shown, even if empty)
 		const resultEl = el.createDiv({ cls: 'claude-sessions-bash-command-stdout' });
@@ -564,14 +565,14 @@ export class TimelineRenderer {
 			});
 		}
 		if (block.stdout.trim()) {
-			void MarkdownRenderer.render(this.ctx.app, fence(block.stdout), resultEl, '', this.ctx.component);
+			renderSessionMarkdown(fence(block.stdout), resultEl, this.ctx);
 		}
 
 		// Stderr (if non-empty)
 		if (block.stderr.trim()) {
 			const stderrEl = el.createDiv({ cls: 'claude-sessions-bash-command-stderr' });
 			stderrEl.createDiv({ cls: 'claude-sessions-tool-section-label', text: 'STDERR' });
-			void MarkdownRenderer.render(this.ctx.app, fence(block.stderr), stderrEl, '', this.ctx.component);
+			renderSessionMarkdown(fence(block.stderr), stderrEl, this.ctx);
 		}
 	}
 
@@ -710,7 +711,7 @@ export class TimelineRenderer {
 			addCopyButton(header, block.summary, 'Copy continuation summary');
 
 			const summaryEl = el.createDiv({ cls: 'claude-sessions-compaction-summary' });
-			void MarkdownRenderer.render(this.ctx.app, normalizeMarkdown(block.summary), summaryEl, '', this.ctx.component);
+			renderSessionMarkdown(normalizeMarkdown(block.summary), summaryEl, this.ctx);
 
 			makeClickable(header, { label: 'Toggle continuation summary', expanded: false });
 			header.addEventListener('click', () => {

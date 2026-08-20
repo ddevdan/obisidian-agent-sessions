@@ -159,7 +159,9 @@ function capturePluginThemeOverrides(): string {
 		}
 	}
 
-	return `.claude-sessions-timeline-container {\n${declarations.join('\n')}\n}`;
+	// Match the mode-scoped core Markdown palettes so resolved snippet values win by
+	// source order instead of losing to the palettes' higher selector specificity.
+	return `.theme-light .claude-sessions-timeline-container,\n.theme-dark .claude-sessions-timeline-container {\n${declarations.join('\n')}\n}`;
 }
 
 /** Capture all CSS needed for standalone HTML export. */

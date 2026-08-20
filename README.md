@@ -54,6 +54,7 @@ or:
 - Collapsible turn headers with role labels (USER / CLAUDE) and colored left borders
 - Progress bar with per-turn dots positioned by real timestamps
 - Content filter menu: hierarchical toggles for User (text, images) and Assistant (text, thinking, tool calls, tool results)
+- Compact Pi-derived Markdown presentation across every Claude Code and pi transcript surface, with Obsidian-controlled light and dark palettes
 
 ### Tool Rendering
 
@@ -108,7 +109,7 @@ Dual-mode search panel in the right sidebar:
 ### Export
 
 - **Markdown** — YAML frontmatter + Obsidian callouts
-- **HTML** — self-contained, zero-dependency file with embedded CSS (captures your current theme), inline images, and standalone JS for all interactive features
+- **HTML** — self-contained, zero-dependency file with embedded CSS (captures your current theme and active Pi Markdown palette), inline images, and standalone JS for all interactive features
 
 ### Session Distillation
 
@@ -165,10 +166,12 @@ Inline indicators on tool calls: zap icon for PreToolUse hooks, shield icon for 
 
 ### Theming
 
-- 42 CSS custom properties (`--cs-*`) for colors, spacing, typography, and dimensions
+- 66 CSS custom properties (`--cs-*`) for colors, spacing, typography, and dimensions
+- Session Markdown uses pi's pinned compact export treatment by default for both Claude Code and pi sessions; Obsidian's active light/dark class selects the palette
+- Non-Markdown UI remains Obsidian-derived, and the stable `.claude-sessions-markdown-content` hook keeps overrides isolated
 - Create custom themes via [Obsidian CSS snippets](https://help.obsidian.md/Extending+Obsidian/CSS+snippets) — no plugin changes needed
 - Included [Claude brand theme](examples/claude-sessions-theme-claude.css) with light/dark variants
-- See [THEMING.md](THEMING.md) for the full variable reference
+- See [THEMING.md](THEMING.md) for the full variable reference, Pi source attribution, and Markdown override properties
 
 ### Deep Linking
 

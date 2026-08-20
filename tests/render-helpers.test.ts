@@ -1,5 +1,39 @@
-import { describe, it, expect } from 'vitest';
-import { normalizeMarkdown, stripFenceMarkers, hasSelectionInside, makeClickable } from '../src/views/render-helpers';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { MarkdownRenderer } from 'obsidian';
+import {
+	normalizeMarkdown, stripFenceMarkers, hasSelectionInside, makeClickable,
+	renderSessionMarkdown, SESSION_MARKDOWN_CLASS, type RenderContext,
+} from '../src/views/render-helpers';
+
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
+describe('renderSessionMarkdown', () => {
+	it('marks the destination before delegating to Obsidian', () => {
+		const classes = new Set<string>();
+		const destination = {
+			classList: {
+				add: (className: string) => classes.add(className),
+				contains: (className: string) => classes.has(className),
+			},
+		} as unknown as HTMLElement;
+		const app = { id: 'app' } as unknown as RenderContext['app'];
+		const component = { id: 'component' } as unknown as RenderContext['component'];
+		const ctx = { app, component, settings: {} } as RenderContext;
+		const render = vi.spyOn(MarkdownRenderer, 'render').mockImplementation(
+			(_app, _markdown, renderedDestination) => {
+				expect(renderedDestination.classList.contains(SESSION_MARKDOWN_CLASS)).toBe(true);
+				return Promise.resolve();
+			},
+		);
+
+		renderSessionMarkdown('**session**', destination, ctx);
+
+		expect(render).toHaveBeenCalledOnce();
+		expect(render).toHaveBeenCalledWith(app, '**session**', destination, '', component);
+	});
+});
 
 describe('normalizeMarkdown', () => {
 	it('inserts a blank line before a GFM table', () => {

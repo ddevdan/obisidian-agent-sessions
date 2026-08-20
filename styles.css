@@ -83,6 +83,11 @@
 	--cs-line-height-code: 1.4;
 	--cs-letter-spacing-caps: 0.5px;
 
+	/* Pi-derived session Markdown geometry */
+	--cs-md-font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+	--cs-md-font-size: 12px;
+	--cs-md-line-height: 18px;
+
 	/* Visual effects */
 	--cs-thinking-opacity: 0.55;
 	--cs-thinking-opacity-hover: 0.85;
@@ -95,6 +100,48 @@
 	--cs-progress-height: var(--size-4-3);
 	--cs-thumb-max-w: 200px;
 	--cs-thumb-max-h: 150px;
+}
+
+.theme-dark .claude-sessions-timeline-container {
+	--cs-md-text: #d4d4d4;
+	--cs-md-heading: #f0c674;
+	--cs-md-link: #81a2be;
+	--cs-md-inline-code: #8abeb7;
+	--cs-md-quote-text: #808080;
+	--cs-md-quote-border: #808080;
+	--cs-md-rule: #808080;
+	--cs-md-list-marker: #8abeb7;
+	--cs-md-table-border: #808080;
+	--cs-md-syntax-comment: #6A9955;
+	--cs-md-syntax-keyword: #569CD6;
+	--cs-md-syntax-function: #DCDCAA;
+	--cs-md-syntax-variable: #9CDCFE;
+	--cs-md-syntax-string: #CE9178;
+	--cs-md-syntax-number: #B5CEA8;
+	--cs-md-syntax-type: #4EC9B0;
+	--cs-md-syntax-operator: #D4D4D4;
+	--cs-md-syntax-punctuation: #D4D4D4;
+}
+
+.theme-light .claude-sessions-timeline-container {
+	--cs-md-text: #1f2328;
+	--cs-md-heading: #9a7326;
+	--cs-md-link: #547da7;
+	--cs-md-inline-code: #5a8080;
+	--cs-md-quote-text: #6c6c6c;
+	--cs-md-quote-border: #6c6c6c;
+	--cs-md-rule: #6c6c6c;
+	--cs-md-list-marker: #588458;
+	--cs-md-table-border: #6c6c6c;
+	--cs-md-syntax-comment: #008000;
+	--cs-md-syntax-keyword: #0000FF;
+	--cs-md-syntax-function: #795E26;
+	--cs-md-syntax-variable: #001080;
+	--cs-md-syntax-string: #A31515;
+	--cs-md-syntax-number: #098658;
+	--cs-md-syntax-type: #267F99;
+	--cs-md-syntax-operator: #000000;
+	--cs-md-syntax-punctuation: #000000;
 }
 
 .claude-sessions-timeline {
@@ -834,19 +881,7 @@
 }
 
 .claude-sessions-user-text {
-	color: var(--text-normal);
 	word-break: break-word;
-}
-
-.claude-sessions-user-text table,
-.claude-sessions-user-text th,
-.claude-sessions-user-text td {
-	font-size: var(--cs-font-size-base);
-}
-
-.claude-sessions-block-wrapper .claude-sessions-text-block .claude-sessions-user-text code {
-	white-space: pre-wrap;
-	word-break: break-all;
 }
 
 /* ═══════════════════════════════════════════
@@ -859,62 +894,220 @@
 	gap: var(--size-2-1);
 }
 
-.claude-sessions-bash-command-block pre {
-	margin: 0;
-}
-
-.claude-sessions-bash-command-stdout {
-	opacity: 0.85;
-}
-
-.claude-sessions-bash-command-stderr pre {
-	border-left: var(--cs-role-border-width) solid var(--color-red);
-}
-
 .claude-sessions-assistant-text {
-	color: var(--text-normal);
 	word-break: break-word;
 	margin: var(--size-2-3) 0;
 	padding-left: var(--size-2-2);
 }
 
-.claude-sessions-assistant-text p {
-	margin: var(--p-spacing) 0;
+/*
+ * Session Markdown adapted from pi's HTML export template (MIT License).
+ * Copyright (c) 2025 Mario Zechner.
+ * Pinned commit: 5cd93f688aaab89dbb6dfa4aca535f21796ae185
+ * Source: https://github.com/earendil-works/pi/blob/5cd93f688aaab89dbb6dfa4aca535f21796ae185/packages/coding-agent/src/core/export-html/template.css
+ */
+.claude-sessions-timeline-container .claude-sessions-markdown-content {
+	font-family: var(--cs-md-font-family);
+	font-size: var(--cs-md-font-size);
+	line-height: var(--cs-md-line-height);
+	color: var(--cs-md-text);
+	white-space: normal;
 }
 
-.claude-sessions-assistant-text table,
-.claude-sessions-assistant-text th,
-.claude-sessions-assistant-text td {
-	font-size: var(--cs-font-size-base);
+.claude-sessions-timeline-container .claude-sessions-markdown-content h1,
+.claude-sessions-timeline-container .claude-sessions-markdown-content h2,
+.claude-sessions-timeline-container .claude-sessions-markdown-content h3,
+.claude-sessions-timeline-container .claude-sessions-markdown-content h4,
+.claude-sessions-timeline-container .claude-sessions-markdown-content h5,
+.claude-sessions-timeline-container .claude-sessions-markdown-content h6 {
+	color: var(--cs-md-heading);
+	margin: var(--cs-md-line-height) 0 0;
+	padding: 0;
+	font-size: 1em;
+	font-weight: bold;
+	line-height: var(--cs-md-line-height);
 }
 
-.claude-sessions-assistant-text pre {
-	background: var(--background-primary);
-	border: var(--border-width) solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 10px var(--size-4-3);
+.claude-sessions-timeline-container .claude-sessions-markdown-content p {
+	margin: 0;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content p + p {
+	margin-top: var(--cs-md-line-height);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content a {
+	color: var(--cs-md-link);
+	text-decoration: underline;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content code {
+	background: rgba(128, 128, 128, 0.2);
+	color: var(--cs-md-inline-code);
+	padding: 0 4px;
+	border: 0;
+	border-radius: 3px;
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content pre {
+	background: transparent;
+	margin: var(--cs-md-line-height) 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
 	overflow-x: auto;
-	margin: var(--size-4-2) 0;
-	line-height: var(--cs-line-height-code);
+	font-family: inherit;
+	font-size: inherit;
+	line-height: var(--cs-md-line-height);
+	white-space: pre;
+	word-break: normal;
 }
 
-.claude-sessions-assistant-text code {
-	background: var(--background-modifier-hover);
-	padding: 2px 6px;
-	border-radius: var(--radius-s);
-	border: var(--border-width) solid var(--background-modifier-border);
-	/* font-size: 0.9em; */
-	color: var(--text-accent);
+.claude-sessions-timeline-container .claude-sessions-markdown-content pre code {
+	display: block;
+	background: none;
+	color: var(--cs-md-text);
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	white-space: inherit;
+	word-break: inherit;
 }
 
-.claude-sessions-block-wrapper .claude-sessions-text-block .claude-sessions-assistant-text code {
+.claude-sessions-timeline-container .claude-sessions-markdown-content blockquote {
+	border: 0;
+	border-left: 3px solid var(--cs-md-quote-border);
+	padding: 0 0 0 var(--cs-md-line-height);
+	margin: var(--cs-md-line-height) 0;
+	color: var(--cs-md-quote-text);
+	font-style: italic;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content ul,
+.claude-sessions-timeline-container .claude-sessions-markdown-content ol {
+	margin: var(--cs-md-line-height) 0;
+	padding: 0 0 0 calc(var(--cs-md-line-height) * 2);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content li {
+	margin: 0;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content li::marker {
+	color: var(--cs-md-list-marker);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content hr {
+	border: 0;
+	border-top: 1px solid var(--cs-md-rule);
+	margin: var(--cs-md-line-height) 0;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content table {
+	border-collapse: collapse;
+	margin: 0.5em 0;
+	width: 100%;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content th,
+.claude-sessions-timeline-container .claude-sessions-markdown-content td {
+	border: 1px solid var(--cs-md-table-border);
+	padding: 6px 10px;
+	text-align: left;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+	white-space: normal;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content th {
+	background: rgba(128, 128, 128, 0.1);
+	font-weight: bold;
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content img {
+	max-width: 100%;
+	border-radius: 4px;
+}
+
+/* Obsidian emits Prism classes; these preserve pi's Highlight.js color intent. */
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.comment,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.prolog,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.doctype,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.cdata {
+	color: var(--cs-md-syntax-comment);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.keyword,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.atrule {
+	color: var(--cs-md-syntax-keyword);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.number,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.boolean,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.constant {
+	color: var(--cs-md-syntax-number);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.string,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.char,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.attr-value,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.regex {
+	color: var(--cs-md-syntax-string);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.function {
+	color: var(--cs-md-syntax-function);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.class-name,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.builtin {
+	color: var(--cs-md-syntax-type);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.variable,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.property,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.attr-name,
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.parameter {
+	color: var(--cs-md-syntax-variable);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.operator {
+	color: var(--cs-md-syntax-operator);
+}
+
+.claude-sessions-timeline-container .claude-sessions-markdown-content .token.punctuation {
+	color: var(--cs-md-syntax-punctuation);
+}
+
+/* Long inline snippets still wrap; fenced code keeps pi's horizontal scrolling. */
+.claude-sessions-timeline-container .claude-sessions-text-block .claude-sessions-user-text.claude-sessions-markdown-content :not(pre) > code,
+.claude-sessions-timeline-container .claude-sessions-text-block .claude-sessions-assistant-text.claude-sessions-markdown-content :not(pre) > code {
 	white-space: pre-wrap;
 	word-break: break-all;
 }
 
-.claude-sessions-assistant-text pre code {
-	background: none;
-	padding: 0;
+/* Tool code keeps room for Obsidian's copy control without restoring old code styling. */
+.claude-sessions-timeline-container .claude-sessions-tool-input .claude-sessions-markdown-content pre,
+.claude-sessions-timeline-container .claude-sessions-tool-result .claude-sessions-markdown-content pre {
+	padding-right: 40px;
+}
+
+/* Error output retains its semantic state color; syntax tokens keep the pi mapping. */
+.claude-sessions-timeline-container .claude-sessions-tool-result-error .claude-sessions-markdown-content,
+.claude-sessions-timeline-container .claude-sessions-markdown-content.claude-sessions-tool-result-error,
+.claude-sessions-timeline-container .claude-sessions-tool-result-error .claude-sessions-markdown-content pre code,
+.claude-sessions-timeline-container .claude-sessions-markdown-content.claude-sessions-tool-result-error pre code {
+	color: var(--color-red);
+}
+
+.claude-sessions-timeline-container .claude-sessions-bash-command-stderr.claude-sessions-markdown-content pre {
+	border-left: var(--cs-role-border-width) solid var(--color-red);
 }
 
 /* ═══════════════════════════════════════════
@@ -1235,8 +1428,6 @@
 
 .claude-sessions-compaction-summary {
 	display: none;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
 	padding: var(--size-4-2) var(--size-4-6);
 	max-height: var(--cs-max-scroll-height);
 	overflow-y: auto;
@@ -1333,18 +1524,6 @@
 	color: var(--text-normal);
 	white-space: pre-wrap;
 	line-height: var(--line-height-normal);
-}
-
-.claude-sessions-tool-input pre,
-.claude-sessions-tool-result pre {
-	margin: 0;
-	background: none;
-	border: none;
-	padding: 0;
-	padding-right: 40px;
-	overflow: visible;
-	font-size: inherit;
-	line-height: inherit;
 }
 
 /* Raw pre/code in tool results (non-MarkdownRenderer) */
@@ -1854,20 +2033,6 @@
 	display: none;
 }
 
-/*
- * Reset inherited tool-result/tool-input styling so markdown preview
- * renders identically to a normal Obsidian note. Ancestors set
- * font-size:12px, white-space:pre-wrap, font-family:monospace,
- * line-height:1.6, color:green — all must be overridden.
- */
-.claude-sessions-timeline-container .claude-sessions-read-md-preview {
-	font-family: var(--font-text);
-	font-size: var(--font-text-size);
-	line-height: var(--line-height-normal);
-	color: var(--text-normal);
-	white-space: normal;
-}
-
 /* ═══════════════════════════════════════════
    Tool groups (5+ consecutive calls)
    ═══════════════════════════════════════════ */
@@ -2005,8 +2170,6 @@
 	display: none;
 	border-top: var(--border-width) solid var(--background-modifier-border);
 	padding: var(--cs-padding-tool-body);
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
 	word-break: break-word;
 	max-height: var(--cs-max-scroll-height);
 	overflow-y: auto;
@@ -2081,8 +2244,6 @@
 	display: none;
 	border-top: var(--border-width) solid var(--background-modifier-border);
 	padding: var(--cs-padding-tool-body);
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
 	word-break: break-word;
 	max-height: var(--cs-max-scroll-height);
 	overflow-y: auto;
@@ -2595,11 +2756,6 @@
 	border-top: var(--border-width) solid var(--background-modifier-border);
 	padding: var(--size-4-2) 0;
 	margin-top: var(--size-4-2);
-}
-
-.claude-sessions-subagent-output-body {
-	font-family: var(--cs-font-family-text);
-	color: var(--text-normal);
 }
 
 /* Focus indicators for all interactive elements */

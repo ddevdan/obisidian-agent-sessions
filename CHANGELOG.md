@@ -36,6 +36,10 @@ For agent transcript format compatibility, see [COMPATIBILITY.md](COMPATIBILITY.
   The session index cache version is bumped to 3, so already-indexed sessions are re-read once to pick up their titles
 
 ### Changed
+- **Session Markdown now uses pi's compact export presentation by default** — headings, paragraphs, links, inline and fenced code, quotes, lists, rules, tables, images, and Prism syntax tokens now share the pinned pi treatment across every Claude Code and pi transcript surface. Obsidian's active light/dark class selects pi's literal semantic palette; surrounding controls, dashboards, system events, and status chrome remain Obsidian-derived. The same scoped rules and active palette are embedded in standalone HTML exports
+
+  This is a visible default change for existing sessions, not an optional snippet. Theme authors can override all session Markdown through the stable `.claude-sessions-markdown-content` hook and the documented `--cs-md-*` properties in [THEMING.md](THEMING.md). The adapted source is pi's MIT-licensed HTML export template and light/dark themes pinned at `5cd93f688aaab89dbb6dfa4aca535f21796ae185`
+
 - **BREAKING — the plugin is now called Agent Sessions**, and registers a provider-neutral `obsidian://agent-sessions` protocol scheme. It no longer claims to serve a single agent
 
   **Existing links keep working.** The `obsidian://claude-sessions` scheme stays registered permanently, not deprecated: the plugin writes those links into distilled notes and exported artifacts it does not own and cannot rewrite, and external scripts use them too, so there is no mechanism by which a deprecation could reach them. New links are minted under the neutral scheme

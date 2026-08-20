@@ -1,10 +1,11 @@
-import { MarkdownRenderer, setIcon } from 'obsidian';
+import { setIcon } from 'obsidian';
 import { diffLines } from 'diff';
 import type { ContentBlock, ToolUseBlock, ToolResultBlock, ToolResultImage, SubAgentSession, HookSuccessEvent } from '../types';
 import { TASK_TOOL_NAMES, ANSI_RE, RE_SYSTEM_REMINDER } from '../constants';
 import {
 	type RenderContext, COLLAPSE_THRESHOLD,
 	makeClickable, fence, langFromPath, stripLineNumbers, addCopyButton, stripFenceMarkers,
+	renderSessionMarkdown,
 } from './render-helpers';
 
 /** Accumulated task state for rendering cumulative task lists. */
@@ -191,7 +192,7 @@ export function renderToolCall(
 		const inputText = formatInput(block.input);
 		const inputMd = fence(inputText, 'json');
 		const inputMdContainer = inputEl.createDiv({ cls: 'claude-sessions-tool-input-code' });
-		void MarkdownRenderer.render(ctx.app, inputMd, inputMdContainer, '', ctx.component);
+		renderSessionMarkdown(inputMd, inputMdContainer, ctx);
 	}
 
 	// Result section (skip for Edit/Write/Agent/AskUserQuestion which render their own results).
@@ -283,7 +284,7 @@ function renderToolResult(
 		if (resultText) {
 			const md = fence(resultText);
 			const mdContainer = resultEl.createDiv({ cls: 'claude-sessions-tool-result-code' });
-			void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+			renderSessionMarkdown(md, mdContainer, ctx);
 		}
 	} else if (block.name === 'Read' && !isError) {
 		const filePath = typeof block.input['file_path'] === 'string' ? block.input['file_path'] : '';
@@ -296,21 +297,21 @@ function renderToolResult(
 		} else {
 			const md = fence(cleaned, lang);
 			const mdContainer = resultEl.createDiv({ cls: 'claude-sessions-read-result' });
-			void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+			renderSessionMarkdown(md, mdContainer, ctx);
 		}
 	} else if (block.name === 'WebFetch' && !isError) {
 		renderMarkdownToggle(resultText, '', resultEl, ctx);
 	} else if (block.name === 'Bash' && !isError && isBashDiffResult(block, resultText)) {
 		const resultMd = fence(resultText, 'diff');
 		const resultMdContainer = resultEl.createDiv({ cls: 'claude-sessions-tool-result-code' });
-		void MarkdownRenderer.render(ctx.app, resultMd, resultMdContainer, '', ctx.component);
+		renderSessionMarkdown(resultMd, resultMdContainer, ctx);
 	} else if (block.name === 'Bash' && !isError && hasAnsiCodes(resultText)) {
 		const pre = resultEl.createEl('pre', { cls: 'claude-sessions-ansi-block' });
 		delegate.buildAnsiDom(resultText, pre);
 	} else {
 		const resultMd = fence(resultText);
 		const resultMdContainer = resultEl.createDiv({ cls: 'claude-sessions-tool-result-code' });
-		void MarkdownRenderer.render(ctx.app, resultMd, resultMdContainer, '', ctx.component);
+		renderSessionMarkdown(resultMd, resultMdContainer, ctx);
 	}
 
 	// Show enriched data (Bash exit code + stderr)
@@ -328,7 +329,7 @@ function renderToolResult(
 				: stderr;
 			const stderrMd = fence(stderrText);
 			const stderrContainer = resultEl.createDiv({ cls: 'claude-sessions-tool-result-code claude-sessions-tool-result-error' });
-			void MarkdownRenderer.render(ctx.app, stderrMd, stderrContainer, '', ctx.component);
+			renderSessionMarkdown(stderrMd, stderrContainer, ctx);
 		}
 	}
 }
@@ -646,7 +647,7 @@ function renderBashInput(
 	const command = typeof block.input['command'] === 'string' ? block.input['command'] : '';
 	const md = fence(command, 'bash');
 	const mdContainer = inputEl.createDiv({ cls: 'claude-sessions-tool-input-code' });
-	void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+	renderSessionMarkdown(md, mdContainer, ctx);
 }
 
 function renderWebFetchInput(
@@ -698,10 +699,10 @@ function renderMarkdownToggle(content: string, lang: string, container: HTMLElem
 
 	const codeView = wrapper.createDiv({ cls: 'claude-sessions-read-md-code' });
 	const codeMd = fence(content, lang);
-	void MarkdownRenderer.render(ctx.app, codeMd, codeView, '', ctx.component);
+	renderSessionMarkdown(codeMd, codeView, ctx);
 
 	const previewView = wrapper.createDiv({ cls: 'claude-sessions-read-md-preview claude-sessions-read-md-hidden' });
-	void MarkdownRenderer.render(ctx.app, content, previewView, '', ctx.component);
+	renderSessionMarkdown(content, previewView, ctx);
 
 	const setActive = (mode: 'code' | 'preview') => {
 		const isCode = mode === 'code';
@@ -764,7 +765,7 @@ function renderSubAgentSession(
 			const wrapEl = outputEl.createDiv({ cls: 'claude-sessions-collapsible-wrap is-collapsed' });
 			const contentEl = wrapEl.createDiv({ cls: 'claude-sessions-collapsible-content' });
 			const bodyEl = contentEl.createDiv({ cls: 'claude-sessions-subagent-output-body' });
-			void MarkdownRenderer.render(ctx.app, result.content, bodyEl, '', ctx.component);
+			renderSessionMarkdown(result.content, bodyEl, ctx);
 			wrapEl.createDiv({ cls: 'claude-sessions-collapsible-fade' });
 			const toggleBtn = wrapEl.createEl('button', {
 				cls: 'claude-sessions-collapsible-toggle',
@@ -779,7 +780,7 @@ function renderSubAgentSession(
 			});
 		} else {
 			const bodyEl = outputEl.createDiv({ cls: 'claude-sessions-subagent-output-body' });
-			void MarkdownRenderer.render(ctx.app, result.content, bodyEl, '', ctx.component);
+			renderSessionMarkdown(result.content, bodyEl, ctx);
 		}
 	}
 }
@@ -827,7 +828,7 @@ function renderDiffView(
 
 	const md = fence(outputLines.join('\n'), 'diff');
 	const mdContainer = diffEl.createDiv({ cls: 'claude-sessions-diff-code' });
-	void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+	renderSessionMarkdown(md, mdContainer, ctx);
 
 	if (result?.isError) {
 		renderErrorOutput(result, container, ctx, toolResultContentBlockIdx);
@@ -862,7 +863,7 @@ function renderWriteView(
 	} else {
 		const md = fence(content, lang);
 		const mdContainer = writeEl.createDiv({ cls: 'claude-sessions-tool-input-code' });
-		void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+		renderSessionMarkdown(md, mdContainer, ctx);
 	}
 
 	if (result?.isError) {
@@ -886,7 +887,7 @@ function renderErrorOutput(
 	el.createDiv({ cls: 'claude-sessions-tool-section-label', text: 'OUTPUT' });
 	const md = fence(result.content);
 	const mdContainer = el.createDiv({ cls: 'claude-sessions-tool-result-code' });
-	void MarkdownRenderer.render(ctx.app, md, mdContainer, '', ctx.component);
+	renderSessionMarkdown(md, mdContainer, ctx);
 }
 
 function toolPreview(block: ToolUseBlock): string {

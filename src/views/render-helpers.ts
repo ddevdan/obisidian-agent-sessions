@@ -1,4 +1,5 @@
-import { App, Component, setIcon } from 'obsidian';
+import { MarkdownRenderer, setIcon } from 'obsidian';
+import type { App, Component } from 'obsidian';
 import type { PluginSettings, HookSuccessEvent, AsyncHookResponseEvent } from '../types';
 
 /** Hook events that can be displayed inline with tool calls. */
@@ -11,6 +12,19 @@ export interface RenderContext {
 	settings: PluginSettings;
 	/** Map of toolUseId → InlineHookEvent[] for inline hook indicators */
 	hookEventsByToolId?: Map<string, InlineHookEvent[]>;
+}
+
+/** Stable hook applied to every destination that contains rendered session Markdown. */
+export const SESSION_MARKDOWN_CLASS = 'claude-sessions-markdown-content';
+
+/** Mark and render one session Markdown surface through Obsidian's renderer. */
+export function renderSessionMarkdown(
+	markdown: string,
+	destination: HTMLElement,
+	ctx: RenderContext,
+): void {
+	destination.classList.add(SESSION_MARKDOWN_CLASS);
+	void MarkdownRenderer.render(ctx.app, markdown, destination, '', ctx.component);
 }
 
 export const COLLAPSE_THRESHOLD = 10;
