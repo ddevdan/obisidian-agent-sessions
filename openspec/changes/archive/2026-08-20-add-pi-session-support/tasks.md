@@ -93,16 +93,16 @@
 
 - [x] 7.1 Run the parser over all 13 local pi transcripts and confirm none throw, none produce
   zero turns, and warning counts are explainable.
-- [ ] 7.2 In Obsidian: pi sessions appear in the browser alongside Claude sessions, each with the
+- [x] 7.2 In Obsidian: pi sessions appear in the browser alongside Claude sessions, each with the
   correct format badge and project name.
-- [ ] 7.3 Open a pi session and check rendering: thinking blocks, tool calls with arguments, tool
+- [x] 7.3 Open a pi session and check rendering: thinking blocks, tool calls with arguments, tool
   results attached to their calls, error results, a shell execution.
-- [ ] 7.4 Confirm ordering interleaves pi and Claude sessions in true last-prompt order.
-- [ ] 7.5 Confirm the summary panel shows pi's own cost and sane token counts.
-- [ ] 7.6 Export a pi session to HTML and to Markdown; confirm both produce usable output.
-- [ ] 7.7 Activate a link under both protocol schemes and confirm both open the same session,
+- [x] 7.4 Confirm ordering interleaves pi and Claude sessions in true last-prompt order.
+- [x] 7.5 Confirm the summary panel shows pi's own cost and sane token counts.
+- [x] 7.6 Export a pi session to HTML and to Markdown; confirm both produce usable output.
+- [x] 7.7 Activate a link under both protocol schemes and confirm both open the same session,
   including one link saved before the rebrand.
-- [ ] 7.8 Temporarily move `~/.pi` aside and confirm the browser still opens cleanly with no
+- [x] 7.8 Temporarily move `~/.pi` aside and confirm the browser still opens cleanly with no
   error, to represent a reader who does not use pi.
 
 ## 8. Documentation
