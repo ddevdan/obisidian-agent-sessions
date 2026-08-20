@@ -1,8 +1,10 @@
 import { BaseParser } from './base-parser';
 import { ClaudeParser } from './claude-parser';
+import { PiParser } from './pi-parser';
 
 const parsers: BaseParser[] = [
 	new ClaudeParser(),
+	new PiParser(),
 ];
 
 export function detectParser(content: string): BaseParser | null {

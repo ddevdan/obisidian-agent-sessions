@@ -554,7 +554,15 @@ export class TimelineRenderer {
 
 		// Result section with RESULT label (always shown, even if empty)
 		const resultEl = el.createDiv({ cls: 'claude-sessions-bash-command-stdout' });
-		resultEl.createDiv({ cls: 'claude-sessions-tool-section-label', text: 'RESULT' });
+		const resultLabel = resultEl.createDiv({ cls: 'claude-sessions-tool-section-label', text: 'RESULT' });
+		// Exit status, for formats that record one (pi does; Claude Code does not).
+		if (block.exitCode !== undefined) {
+			const failed = block.exitCode !== 0;
+			resultLabel.createSpan({
+				cls: `claude-sessions-bash-exit${failed ? ' is-error' : ''}`,
+				text: `exit ${block.exitCode}`,
+			});
+		}
 		if (block.stdout.trim()) {
 			void MarkdownRenderer.render(this.ctx.app, fence(block.stdout), resultEl, '', this.ctx.component);
 		}

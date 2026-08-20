@@ -1,4 +1,4 @@
-export type SessionFormat = 'claude';
+export type SessionFormat = 'claude' | 'pi';
 export type TurnRole = 'user' | 'assistant';
 
 export interface SessionMetadata {
@@ -11,8 +11,10 @@ export interface SessionMetadata {
 	version?: string;
 	startTime?: string;
 	totalTurns: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
 }
 
 export interface SessionStats {
@@ -38,6 +40,14 @@ export interface SessionStats {
 	compactionCount: number;
 	/** Estimated session cost in USD (model-aware pricing). */
 	costUSD: number;
+	/**
+	 * Where costUSD came from. 'computed' applies this project's price table to token
+	 * counts; 'recorded' is the figure the transcript itself reported, which is the only
+	 * trustworthy source for a model the price table does not cover; 'unknown' means no
+	 * cost could be established and callers should show none rather than a zero.
+	 * Absent is treated as 'computed', so existing consumers are unaffected.
+	 */
+	costSource?: 'computed' | 'recorded' | 'unknown';
 	toolUseCounts: Record<string, number>;
 	durationMs: number;
 }
@@ -207,6 +217,8 @@ export interface BashCommandBlock {
 	command: string;
 	stdout: string;
 	stderr: string;
+	/** Exit status, where the format records one. pi does; Claude Code does not. */
+	exitCode?: number;
 	timestamp?: string;
 }
 
@@ -237,7 +249,9 @@ export interface PluginSettings {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-	sessionDirs: ['~/.claude/projects'],
+	// One entry per agent whose transcripts the viewer reads. A directory that does
+	// not exist is skipped silently, so a reader who uses only one agent sees no change.
+	sessionDirs: ['~/.claude/projects', '~/.pi/agent/sessions'],
 	exportFolder: 'Claude sessions',
 	showThinkingBlocks: true,
 	showToolCalls: true,
@@ -269,8 +283,12 @@ export interface SessionListEntry {
 	cwd?: string;
 	startTime?: string;
 	mtime: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
+	/** ISO timestamp of the last user prompt. Sort key for the session list. */
+	lastPromptTime?: string;
 }
 
 export interface CachedSessionMeta {
@@ -279,8 +297,14 @@ export interface CachedSessionMeta {
 	startTime?: string;
 	hasContent: boolean;
 	mtime: number;
-	/** User-defined session name from /rename command. */
+	/** User-defined session name from /rename command. Wins over aiTitle. */
 	customTitle?: string;
+	/** Claude Code's auto-generated session name (ai-title record, last one wins). */
+	aiTitle?: string;
+	/** ISO timestamp of the last user prompt. Sort key for the session list. */
+	lastPromptTime?: string;
+	/** Which agent's format the transcript is in, as detected during discovery. */
+	format?: SessionFormat;
 }
 
 export interface SessionIndexData {

@@ -4,6 +4,8 @@ import type ClaudeSessionsPlugin from '../main';
 import { SessionListEntry } from '../types';
 import { expandHome, extractProjectName, basename, shortenPath, projectFromCwd } from '../utils/path-utils';
 import { listDirectory, listDirectoryFiles, listSubdirectories, readFileContent, extractQuickMetadataAsync } from '../utils/streaming-reader';
+import { sessionDisplayName, sessionSearchableNames } from '../utils/session-title';
+import { sortByLastPrompt } from '../utils/session-order';
 import { detectParser } from '../parsers/detect';
 import { resolveSubAgentSessions } from '../parsers/claude-subagent';
 
@@ -58,7 +60,7 @@ export async function scanSessionDirs(plugin: ClaudeSessionsPlugin): Promise<{ e
 	index.prune(discoveredPaths);
 	index.save();
 
-	entries.sort((a, b) => b.mtime - a.mtime);
+	sortByLastPrompt(entries);
 
 	return { entries, total: entries.length, updated };
 }
@@ -92,6 +94,9 @@ async function buildEntry(
 			hasContent: meta.hasContent,
 			mtime,
 			customTitle: meta.customTitle,
+			aiTitle: meta.aiTitle,
+			lastPromptTime: meta.lastPromptTime,
+			format: meta.format,
 		};
 		index.set(filePath, cached);
 		wasUpdated = true;
@@ -108,13 +113,16 @@ async function buildEntry(
 		entry: {
 			id: cached.sessionId || basename(filePath).replace(/\.\w+$/, ''),
 			project,
-			format: 'claude',
+			// Detected during discovery; falls back only for a pre-existing cache entry.
+			format: cached.format ?? 'claude',
 			date,
 			path: filePath,
 			cwd: cached.cwd,
 			startTime: cached.startTime,
 			mtime,
 			customTitle: cached.customTitle,
+			aiTitle: cached.aiTitle,
+			lastPromptTime: cached.lastPromptTime,
 		},
 		_updated: wasUpdated,
 	};
@@ -136,8 +144,7 @@ export class SessionBrowserModal extends SuggestModal<SessionListEntry> {
 		if (query) {
 			const q = query.toLowerCase();
 			results = results.filter((e) => {
-				const displayName = e.customTitle || e.project;
-				return displayName.toLowerCase().includes(q)
+				return sessionSearchableNames(e).some(n => n.toLowerCase().includes(q))
 					|| (e.cwd?.toLowerCase().includes(q) ?? false)
 					|| e.id.toLowerCase().includes(q);
 			});
@@ -158,7 +165,7 @@ export class SessionBrowserModal extends SuggestModal<SessionListEntry> {
 		if (isPinned) el.addClass('is-pinned');
 
 		const line1 = el.createDiv({ cls: 'claude-sessions-suggestion-line1' });
-		const displayName = item.customTitle || item.project;
+		const displayName = sessionDisplayName(item);
 		line1.createSpan({ cls: 'claude-sessions-suggestion-project', text: displayName });
 
 		// Pin toggle button

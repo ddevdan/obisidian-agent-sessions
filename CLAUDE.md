@@ -1,6 +1,12 @@
-# Claude Sessions — Obsidian Plugin
+# Agent Sessions — Obsidian Plugin
 
-Desktop-only Claude Code JSONL session viewer for Obsidian. Browse, search, and export sessions with rich tool rendering, live watch, and summary dashboards.
+Desktop-only coding-agent JSONL session viewer for Obsidian. Reads Claude Code and pi
+transcripts. Browse, search, and export sessions with rich tool rendering, live watch, and
+summary dashboards.
+
+The plugin **id** stays `claude-sessions` (Obsidian keys settings and the public API by it);
+only the display name is neutral. The `claude-sessions-*` CSS prefix stays for the same
+reason — `THEMING.md` publishes it as the surface user snippets target.
 
 **Version**: 0.3.18 | **Branch**: main
 
@@ -24,11 +30,13 @@ src/
   constants.ts               # JSONL protocol strings, regexes, display strings
   api.ts                     # Public API for inter-plugin communication
   parsers/
-    claude-parser.ts         # Core JSONL parser (record merging, dedup, stats)
+    claude-parser.ts         # Claude Code JSONL parser (record merging, dedup, stats)
+    pi-parser.ts             # pi JSONL parser (nested message.role, recorded cost)
+    format-probes.ts         # Per-format record-shape matchers used by discovery
     claude-content.ts        # Content block parsing, tool result extraction
     claude-subagent.ts       # Sub-agent JSONL resolution
     base-parser.ts           # Abstract base (splitLines, tryParseJson)
-    detect.ts                # Format detection
+    detect.ts                # Format detection (registry of parsers, tried in order)
   views/
     timeline-view.ts         # ItemView — timeline, controls, filters, live watch
     timeline-renderer.ts     # Turn/block rendering, ANSI, mermaid, image modals
@@ -56,7 +64,10 @@ src/
   utils/
     path-utils.ts            # expandHome, basename, dirname, shortenPath
     rate-limits.ts           # OAuth credential reading + Anthropic usage API (beta)
-    session-index.ts         # Persistent metadata cache (JSON on disk)
+    session-index.ts         # Persistent metadata cache (bump INDEX_VERSION when fields change)
+    session-title.ts         # Display-name resolution (customTitle > aiTitle > project)
+    session-order.ts         # Sort key: last prompt time, mtime fallback
+    session-resume.ts        # Per-format resume command
     session-search.ts        # Line-by-line JSONL grep + BM25-ranked search
     bm25.ts                  # BM25 relevance scoring engine (tokenizer, stemmer, index)
     streaming-reader.ts      # File I/O (Node.js streams, metadata extraction)

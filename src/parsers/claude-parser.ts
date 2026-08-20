@@ -8,6 +8,7 @@ import {
 import { extractProjectName, projectFromCwd, dirname, basename } from '../utils/path-utils';
 import {
 	RT_USER, RT_ASSISTANT, RT_PROGRESS, RT_QUEUE_OPERATION, RT_FILE_HISTORY, RT_SUMMARY, RT_SYSTEM, RT_CUSTOM_TITLE,
+	RT_AI_TITLE,
 	SKIP_RECORD_TYPES,
 	BT_TEXT, BT_TOOL_USE, BT_TOOL_RESULT, BT_IMAGE,
 	PROGRESS_AGENT,
@@ -179,6 +180,7 @@ export class ClaudeParser extends BaseParser {
 		let model = '';
 		let startTime = '';
 		let customTitle = '';
+		let aiTitle = '';
 
 		// Collect sub-agent progress records by parentToolUseID
 		const agentProgressMap = new Map<string, ClaudeRecord[]>();
@@ -306,6 +308,15 @@ export class ClaudeParser extends BaseParser {
 			if (record.type === RT_CUSTOM_TITLE) {
 				const title = (record as unknown as { customTitle?: string }).customTitle;
 				if (title) customTitle = title;
+				continue;
+			}
+
+			// Capture Claude Code's auto-generated session name. Regenerated as the
+			// session evolves, so keep the last value. Must precede the skip check —
+			// RT_AI_TITLE is in SKIP_RECORD_TYPES.
+			if (record.type === RT_AI_TITLE) {
+				const title = (record as unknown as { aiTitle?: string }).aiTitle;
+				if (title) aiTitle = title;
 				continue;
 			}
 
@@ -569,6 +580,7 @@ export class ClaudeParser extends BaseParser {
 			cumulativeDroppedTokens,
 			compactionCount,
 			costUSD,
+			costSource: 'computed',
 			toolUseCounts,
 			durationMs,
 		};
@@ -616,6 +628,7 @@ export class ClaudeParser extends BaseParser {
 				startTime: this.formatTimestamp(startTime),
 				totalTurns: turns.length,
 				customTitle: customTitle || undefined,
+				aiTitle: aiTitle || undefined,
 			},
 			stats,
 			turns,

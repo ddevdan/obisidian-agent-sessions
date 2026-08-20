@@ -1,10 +1,77 @@
 # Changelog
 
-All notable changes to Claude Sessions are documented here.
+All notable changes to Agent Sessions are documented here.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), [Semantic Versioning](https://semver.org/).
 
-For Claude Code version compatibility, see [COMPATIBILITY.md](COMPATIBILITY.md).
+For agent transcript format compatibility, see [COMPATIBILITY.md](COMPATIBILITY.md).
+
+---
+
+## [Unreleased]
+
+### Added
+- **pi sessions are now readable** — the plugin reads transcripts from [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) as well as Claude Code. pi's default location (`~/.pi/agent/sessions`) is scanned out of the box, and a configured directory that does not exist is skipped silently, so nothing changes for readers who do not use pi
+
+  pi's record types map onto the existing turn and content-block model: reasoning becomes thinking blocks, `toolCall` becomes tool calls with their arguments, `toolResult` attaches to its call via `toolCallId` with failures marked, and `bashExecution` becomes a command block carrying its command, output and exit status. Consecutive assistant records merge into one turn, as with Claude Code
+
+  The blocker was never parsing — it was discovery. Content detection set `hasContent` only for a top-level `"type":"user"`/`"type":"assistant"`, which is Claude Code's shape; pi nests the role at `message.role`, so every pi session was judged empty and dropped *before* format detection ran. The feature looked absent rather than broken. Detection now goes through per-format probes (`parsers/format-probes.ts`) that every format contributes to
+
+  Probes are two-tiered, because measurement showed a single tier cannot work: Claude Code writes its top-level `type` at a median offset of **1146** characters and up to 48KB into the line, so 62% of its conversation records carry no `type` within any sensible head budget — a head-only content check produced 29,768 false negatives across the corpus. Correctness-critical checks therefore read an already-parsed record, and only the whole-file last-prompt sweep uses a 200-character head, where a miss degrades to the file mtime. Verified over 76,638 Claude and 944 pi records with zero false positives, zero false negatives, and no cross-firing between formats
+
+  pi sessions report **the cost pi itself recorded**, never a figure computed here. Its models are not Anthropic — `gpt-5.6-sol` and `deepseek-v4-pro` observed — and `getPricing()` silently falls back to Sonnet rates for anything unrecognised, which on a 4.6M-token session would be wrong by orders of magnitude. `SessionStats.costSource` now distinguishes `recorded` from `computed`, with `unknown` meaning no cost is shown at all rather than a misleading zero
+
+  Also format-aware now: the resume command, which previously offered `claude --resume` for every session. pi uses `pi --session <id>`
+
+  pi session names are read too. pi stores a user-set name as a `session_info` entry (`pi --name "..."`, or `setSessionName()` from an extension); the latest entry wins and a blank name is an explicit clear, matching pi's own resolution. It maps to `customTitle` — the same provenance as Claude Code's `/rename` — so the existing three-tier display-name resolution needed no pi-specific branch. pi has no auto-generated title, so an unnamed session still shows its project name
+
+- **Session titles in the browser and search panels** — Claude Code names every session it can, and shows that name in its own `/resume` picker. The plugin was throwing the name away: `ai-title` was listed in both `SKIP_RECORD_TYPES` and `SKIP_TYPE_STRINGS`, so it got discarded as metadata noise
+
+  The session browser and the search panel now show the real title — `Fix re-entrancy bug in switchToNote` instead of `ankihub`. That matters most in a monorepo or a busy project, where every session previously displayed the same project name and the picker gave you nothing to tell them apart. The browser's filter also matches on any of a session's names, not just the one on display, so typing a remembered title finds it
+
+  Titles resolve in three tiers, in one place (`utils/session-title.ts`): `customTitle` from `/rename` wins, then `aiTitle`, then the project name. `ai-title` records are emitted repeatedly as a session evolves, so the last one wins. Roughly half of sessions carry a title — short ones never get one generated, and those still show the project name as before. The summary panel, both exporters, and distill frontmatter use the same resolution, and only print a "Title:" row when a real title exists rather than repeating the adjacent Project value
+
+  `custom-title` support is retained for older sessions but appears to be gone from current Claude Code — zero occurrences across a 361-session corpus spanning 2.1.215–2.1.235. Every surface had been falling back to the project name for every session as a result
+
+  The session index cache version is bumped to 3, so already-indexed sessions are re-read once to pick up their titles
+
+### Changed
+- **BREAKING — the plugin is now called Agent Sessions**, and registers a provider-neutral `obsidian://agent-sessions` protocol scheme. It no longer claims to serve a single agent
+
+  **Existing links keep working.** The `obsidian://claude-sessions` scheme stays registered permanently, not deprecated: the plugin writes those links into distilled notes and exported artifacts it does not own and cannot rewrite, and external scripts use them too, so there is no mechanism by which a deprecation could reach them. New links are minted under the neutral scheme
+
+  Two identifiers deliberately did **not** move, because both are contracts rather than copy. The plugin **id** stays `claude-sessions` — Obsidian keys installed plugins, their settings directory and `app.plugins.plugins['claude-sessions']` by it, so renaming would orphan your settings and break every API consumer. The **`claude-sessions-*` CSS prefix** stays because `THEMING.md` publishes it as the surface user snippets target, across 498 selectors. Install paths and the plugin folder are unchanged as a result
+
+  The session index cache version is bumped to 5: entries cached before this release were written when a pi transcript was judged empty, so they must be re-read or pi sessions stay hidden
+
+- **Sessions are ordered by when you last prompted them, not by file mtime** — the session browser and search panel sorted on the file's modification time, which drifts away from your last prompt. Background writes keep touching a session file after you stop typing: title regeneration, file-history snapshots, subagent activity. Measured over a 361-session corpus, mtime ordering and last-prompt ordering agreed on only **14%** of positions, with drift reaching days. One real session was last prompted at 17:29 but written at 19:36 — under the old sort it outranked sessions touched far more recently
+
+  The sort key is the timestamp of the last user record, resolved in `utils/session-order.ts`, with mtime kept as the fallback for a session that has no user record. Coverage is 100% of sessions with content
+
+  Claude Code's own `last-prompt` record was the obvious source but is unusable as a key: it carries no timestamp, and its `leafUuid` points at any record type (usually `system`), so resolving it would mean building a uuid→timestamp map over every line — the full-parse cost the metadata scan exists to avoid. The last user record's timestamp agrees with it to a median of 26 seconds while covering 100% of sessions instead of 76%. The timestamp is pulled with a narrow regex after a head-only type check, verified against a full parse across the corpus at 360/360 exact with no false matches
+
+  The session index cache version is bumped to 4 to re-read already-indexed sessions
+
+### Fixed
+- **Tables with unpiped body rows rendered as a paragraph** — model-authored tables sometimes pipe the header and delimiter rows but not the body:
+
+  ```
+  | Test | Output | Finding |
+  |---|---|---|
+  `test_name` | `assert 2.01 < 1.5` | prep phase unbounded |
+  ```
+
+  Obsidian closes the table after the delimiter row, so the body rendered as flowing text with the pipes showing as literal characters and the cells as inline code. `normalizeMarkdown()` now gives those rows the leading pipe they are missing. A row is only adopted if it carries at least `columns - 1` pipes, so prose that merely happens to contain a pipe closes the table instead of being pulled into it. Roughly 4% of tables in a real corpus have this shape
+
+- **Blank-line insertion corrupted fenced code blocks** — the rule that separates a table from the paragraph above it was a plain regex with no awareness of code fences, so a table-shaped block inside a fence had a blank line injected into it, breaking the fence and the code it displayed. Both table repairs now run in a single fence-aware pass that skips fenced content entirely. Measured over a 361-session corpus the old rule corrupted fenced code in 6 text blocks; the new one in none
+
+  The pass also now recognises tables written without outer pipes (`a | b` over `--- | ---`), which the old regex required to start and end with a pipe
+
+- **Session text could not be selected or copied** — Obsidian's `app.css` sets `user-select: none` on `body` and `user-select` inherits, so everything the plugin rendered was unselectable. You could read an assistant reply or a line of command output but not drag across it, and the copy buttons were the only way to get text out
+
+  Each view root (`.claude-sessions-timeline-container`, `.claude-sessions-search-view`) now opts back in with `user-select: text`, so message text, thinking blocks, tool input and results, diffs, ANSI terminal output, summary values, system events, and search snippets are all selectable and copyable. Interactive chrome opts back out: the 16 clickable elements that were missing a selection opt-out (copy and download buttons, control-bar buttons, the compaction header, image thumbnails, mermaid containers, search buttons) now carry one, so a drag that starts on a header still expands the block instead of painting a selection
+
+  `makeClickable()` also installs a capture-phase click guard, so the click that ends a drag-select no longer collapses the block you were reading — the block stays open and the selection survives. Keyboard activation is unaffected: Enter and Space still toggle while text is selected. The same guard is mirrored in exported HTML
 
 ---
 

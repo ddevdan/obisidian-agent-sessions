@@ -1,9 +1,9 @@
 {
 	"id": "claude-sessions",
-	"name": "Claude Sessions",
+	"name": "Agent Sessions",
 	"version": "0.3.21",
 	"minAppVersion": "1.13.0",
-	"description": "View Claude Code sessions. Browse, search, analyze, & export your sessions as interactive timelines with live watch & rich tool rendering — right alongside your notes.",
+	"description": "View coding agent sessions. Browse, search, analyze, & export Claude Code and pi sessions as interactive timelines with live watch & rich tool rendering — right alongside your notes.",
 	"author": "@gapmiss",
 	"authorUrl": "https://github.com/gapmiss",
 	"isDesktopOnly": true
